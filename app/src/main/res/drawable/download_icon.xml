@@ -3,7 +3,7 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24"
-    android:tint="?attr/colorControlNormal"> <!-- auto-tint with theme -->
+    android:tint="#FFFFFF"> <!-- auto-tint with theme -->
 
   <path
       android:pathData="M12,17V3"
