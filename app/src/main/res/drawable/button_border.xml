@@ -7,7 +7,7 @@
     <!-- Border color & width -->
     <stroke
         android:width="2dp"
-        android:color="#FFFFFF" />  <!-- black border -->
+        android:color="#FFFFFF" />
 
     <corners android:radius="50dp" />
 </shape>
