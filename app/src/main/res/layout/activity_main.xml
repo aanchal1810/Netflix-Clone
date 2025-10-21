@@ -171,13 +171,15 @@
             android:layout_height="match_parent"
             android:orientation="horizontal">
 
-            <Button
+            <TextView
+                android:padding="16dp"
                 android:id="@+id/tvShows"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5sp"
                 android:layout_marginBottom="5sp"
                 android:background="@drawable/button_border"
+                android:backgroundTint="@color/white"
                 android:text="TV Shows"
                 android:textColor="#FFFFFF"
                 android:textColorLink="#B6A1BA" />
