@@ -14,6 +14,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MADMiniProject">
         <activity
+            android:name=".OnboardingSwipe"
+            android:exported="false" />
+        <activity
             android:name=".Password"
             android:exported="false" />
         <activity
