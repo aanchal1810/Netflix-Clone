@@ -1,6 +1,10 @@
 package com.example.madminiproject;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,6 +23,19 @@ public class LoginActivity extends AppCompatActivity {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
+        });
+        Button loginBtn = findViewById(R.id.loginBtn);
+        EditText email = findViewById(R.id.email);
+        String userEmail = email.getText().toString();
+
+
+        loginBtn.setOnClickListener(v -> {
+//            if (userEmail.isEmpty()){
+//                Toast.makeText(this, "Please enter your email to continue.", Toast.LENGTH_SHORT).show();
+//                return;
+//            }
+            startActivity(new Intent(LoginActivity.this, Password.class));
+            finish();
         });
     }
 }

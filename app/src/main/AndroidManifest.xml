@@ -14,10 +14,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MADMiniProject">
         <activity
+            android:name=".Password"
+            android:exported="false" />
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true" />
         <activity
-            android:name=".LoginActivity"
+            android:name=".GetStarted"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

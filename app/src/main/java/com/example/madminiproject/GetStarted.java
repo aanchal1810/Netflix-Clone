@@ -14,7 +14,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
-public class LoginActivity extends AppCompatActivity {
+public class GetStarted extends AppCompatActivity {
 
     int[] backgrounds = {
             R.drawable.login_bg1,
@@ -40,7 +40,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+        setContentView(R.layout.activity_get_started);
         View topNavbar = findViewById(R.id.topNavbar);
         topNavbar.setElevation(10f);
         topNavbar.bringToFront();
@@ -79,7 +79,7 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         btnGetStarted.setOnClickListener(v -> {
-            startActivity(new Intent(LoginActivity.this, MainActivity.class));
+            startActivity(new Intent(GetStarted.this, LoginActivity.class));
             finish();
         });
     }
