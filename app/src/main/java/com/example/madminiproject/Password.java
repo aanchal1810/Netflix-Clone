@@ -33,7 +33,7 @@ public class Password extends AppCompatActivity {
 //                Toast.makeText(this, "Please enter the password to continue.", Toast.LENGTH_SHORT).show();
 //                return;
 //            }
-            startActivity(new Intent(Password.this, MainActivity.class));
+            startActivity(new Intent(Password.this, OnboardingSwipe.class));
             finish();
         });
     }
