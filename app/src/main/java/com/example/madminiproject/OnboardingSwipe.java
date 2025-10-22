@@ -240,6 +240,7 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
         result.dispatchUpdatesTo(adapter);
     }
 
+    //dummy data, arhaan add your part of the code here
     private Movie createSpot() {
         return new Movie("Yasaka Shrine", "https://source.unsplash.com/Xq1ntWruZQI/600x800");
     }
