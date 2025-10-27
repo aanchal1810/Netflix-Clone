@@ -60,4 +60,5 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("com.google.android.material:material:1.9.0")
     implementation("com.github.yuyakaido:CardStackView:v2.3.4")
+    implementation("com.airbnb.android:lottie:6.4.0")
 }
