@@ -18,22 +18,23 @@ public class Splash extends AppCompatActivity {
         setContentView(R.layout.activity_splash);
         FirebaseApp.initializeApp(this);
 
-
-        LottieAnimationView animationView = findViewById(R.id.splash);
-        animationView.playAnimation();
-
-        int duration = (int) animationView.getDuration(); // get length of Lottie anim
-        if (duration <= 0) duration = 3000; // fallback if Lottie doesn't report duration
-
-        new Handler().postDelayed(() -> {
-            startActivity(new Intent(Splash.this, GetStarted.class));
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-            finish();
-        }, duration);
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+
         if (currentUser != null) {
             startActivity(new Intent(this, MainActivity.class));
             finish();
+        } else {
+            LottieAnimationView animationView = findViewById(R.id.splash);
+            animationView.playAnimation();
+
+            int duration = (int) animationView.getDuration();
+            if (duration <= 0) duration = 3000;
+
+            new Handler().postDelayed(() -> {
+                startActivity(new Intent(Splash.this, GetStarted.class));
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                finish();
+            }, duration);
         }
     }
 }
