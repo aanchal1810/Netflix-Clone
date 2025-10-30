@@ -8,6 +8,8 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.FirebaseApp;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
     private MoviesAdapter adapter;
     private final List<Movie> movieList = new ArrayList<>();
     private TmdbApi tmdbApi;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,6 +69,8 @@ public class MainActivity extends AppCompatActivity {
         // Load CSV titles and fetch movies
         List<String> titles = loadMovieTitlesFromAssets();
         fetchMoviesFromApi(titles);
+        FirebaseApp.initializeApp(this);
+
     }
 
     // CSV split regex that handles quoted commas
