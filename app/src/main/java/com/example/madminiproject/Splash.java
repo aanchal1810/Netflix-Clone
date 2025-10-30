@@ -6,6 +6,9 @@ import android.os.Handler;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.airbnb.lottie.LottieAnimationView;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class Splash extends AppCompatActivity {
 
@@ -13,6 +16,8 @@ public class Splash extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
+        FirebaseApp.initializeApp(this);
+
 
         LottieAnimationView animationView = findViewById(R.id.splash);
         animationView.playAnimation();
@@ -25,5 +30,10 @@ public class Splash extends AppCompatActivity {
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
             finish();
         }, duration);
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            startActivity(new Intent(this, MainActivity.class));
+            finish();
+        }
     }
 }

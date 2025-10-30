@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
@@ -61,4 +62,6 @@ dependencies {
     implementation("com.google.android.material:material:1.9.0")
     implementation("com.github.yuyakaido:CardStackView:v2.3.4")
     implementation("com.airbnb.android:lottie:6.4.0")
+    implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
+    implementation("com.google.firebase:firebase-auth")
 }
