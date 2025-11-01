@@ -12,7 +12,6 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.firebase.FirebaseApp;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -28,7 +27,6 @@ public class LoginActivity extends AppCompatActivity {
         });
         Button loginBtn = findViewById(R.id.loginBtn);
         EditText email = findViewById(R.id.email);
-        FirebaseApp.initializeApp(this);
 
 
         loginBtn.setOnClickListener(v -> {
