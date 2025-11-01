@@ -12,6 +12,7 @@ import com.example.madminiproject.BuildConfig;
 import com.example.madminiproject.Movie;
 import com.example.madminiproject.MovieResponse;
 import com.example.madminiproject.TmdbApi;
+import com.example.madminiproject.TmdbClient;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -42,22 +43,8 @@ public class MainViewModel extends AndroidViewModel {
     public MainViewModel(@NonNull Application application) {
         super(application);
 
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
+        tmdbApi = TmdbClient.getInstance();
 
-        OkHttpClient client = new OkHttpClient.Builder()
-                .addInterceptor(logging)
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .build();
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        tmdbApi = retrofit.create(TmdbApi.class);
 
         loadMovies();
     }
