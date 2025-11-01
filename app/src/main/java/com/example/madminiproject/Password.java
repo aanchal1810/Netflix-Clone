@@ -11,13 +11,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.example.madminiproject.viewmodel.LoginViewModel;
 
 public class Password extends AppCompatActivity {
 
-    private FirebaseAuth mAuth;
+    private LoginViewModel loginViewModel;
     private String userEmail;
 
     @Override
@@ -32,9 +32,7 @@ public class Password extends AppCompatActivity {
             return insets;
         });
 
-
-        mAuth = FirebaseAuth.getInstance();
-        mAuth.getFirebaseAuthSettings().setAppVerificationDisabledForTesting(true);
+        loginViewModel = new ViewModelProvider(this).get(LoginViewModel.class);
 
         userEmail = getIntent().getStringExtra("email");
 
@@ -44,40 +42,27 @@ public class Password extends AppCompatActivity {
         loginBtn1.setOnClickListener(v -> {
             String userPass = passwordField.getText().toString().trim();
 
-            System.out.println(userEmail+"\t"+userPass);
             if (userPass.isEmpty()) {
                 Toast.makeText(this, "Please enter your password.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            checkUserAndProceed(userEmail, userPass);
+            loginViewModel.authenticateUser(userEmail, userPass);
         });
-    }
 
-    private void checkUserAndProceed(String email, String password) {
-        mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, task -> {
-                    if (task.isSuccessful()) {
-                        FirebaseUser user = mAuth.getCurrentUser();
-                        Toast.makeText(this, "Welcome back!", Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(Password.this, MainActivity.class);
-                        startActivity(intent);
-                        finish();
-                    } else {
-                        mAuth.createUserWithEmailAndPassword(email, password)
-                                .addOnCompleteListener(this, signupTask -> {
-                                    if (signupTask.isSuccessful()) {
-                                        FirebaseUser newUser = mAuth.getCurrentUser();
-                                        Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
-                                        Intent intent = new Intent(Password.this, OnboardingSwipe.class);
-                                        startActivity(intent);
-                                        finish();
-                                    } else {
-                                        Toast.makeText(this, "Error: " +
-                                                signupTask.getException().getMessage(), Toast.LENGTH_LONG).show();
-                                    }
-                                });
-                    }
-                });
+        loginViewModel.getAuthResult().observe(this, authResult -> {
+            if (authResult instanceof LoginViewModel.AuthResult.Success) {
+                Toast.makeText(this, "Welcome back!", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(Password.this, MainActivity.class));
+                finish();
+            } else if (authResult instanceof LoginViewModel.AuthResult.NewUser) {
+                Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(Password.this, OnboardingSwipe.class));
+                finish();
+            } else if (authResult instanceof LoginViewModel.AuthResult.Error) {
+                Exception exception = ((LoginViewModel.AuthResult.Error) authResult).getException();
+                Toast.makeText(this, "Error: " + exception.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 }

@@ -11,9 +11,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
+import com.example.madminiproject.viewmodel.EmailViewModel;
 
 public class LoginActivity extends AppCompatActivity {
+
+    private EmailViewModel emailViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,17 +29,19 @@ public class LoginActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        emailViewModel = new ViewModelProvider(this).get(EmailViewModel.class);
+
         Button loginBtn = findViewById(R.id.loginBtn);
         EditText email = findViewById(R.id.email);
 
-
         loginBtn.setOnClickListener(v -> {
-            String userEmail = email.getText().toString();
-
-            if (userEmail.isEmpty()){
+            if (!emailViewModel.onNextClicked(email.getText().toString())) {
                 Toast.makeText(this, "Please enter your email to continue.", Toast.LENGTH_SHORT).show();
-                return;
             }
+        });
+
+        emailViewModel.getNavigateToPassword().observe(this, userEmail -> {
             startActivity(new Intent(LoginActivity.this, Password.class).putExtra("email", userEmail));
             finish();
         });
