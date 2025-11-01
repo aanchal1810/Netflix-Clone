@@ -1,9 +1,13 @@
 package com.example.madminiproject;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.ImageView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -23,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         setContentView(R.layout.activity_main);
         EdgeToEdge.enable(this);
         recyclerView = findViewById(R.id.recyclerView);
@@ -30,7 +35,11 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(layoutManager);
         adapter = new MoviesAdapter(this, movieList);
         recyclerView.setAdapter(adapter);
-
+        View navbar = findViewById(R.id.navbar);
+        ImageView searchIcon = navbar.findViewById(R.id.search);
+        searchIcon.setOnClickListener(v -> {
+            startActivity(new Intent(this, Search.class));
+        });
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
 
         mainViewModel.getMovieList().observe(this, movies -> {
