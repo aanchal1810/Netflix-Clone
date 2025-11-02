@@ -1,13 +1,14 @@
 package com.example.madminiproject;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.LinearInterpolator;
+import android.widget.Button;
 import android.widget.TextView;
 
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GravityCompat;
@@ -36,7 +37,7 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_onboarding_swipe);
-        EdgeToEdge.enable(this);
+
         drawerLayout = findViewById(R.id.drawer_layout);
         cardStackView = findViewById(R.id.card_stack_view);
         manager = new CardStackLayoutManager(this, this);
@@ -49,6 +50,12 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
 
         setupCardStackView();
         setupButton();
+
+        Button continueButton = findViewById(R.id.continue_button);
+        continueButton.setOnClickListener(v -> {
+            startActivity(new Intent(OnboardingSwipe.this, ProfileSelectionActivity.class));
+            finish();
+        });
     }
 
     @Override

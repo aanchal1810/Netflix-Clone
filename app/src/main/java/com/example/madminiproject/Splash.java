@@ -32,7 +32,7 @@ public class Splash extends AppCompatActivity {
 
         splashViewModel.getIsUserLoggedIn().observe(this, isUserLoggedIn -> {
             if (isUserLoggedIn) {
-                startActivity(new Intent(Splash.this, MainActivity.class));
+                startActivity(new Intent(Splash.this, ProfileSelectionActivity.class));
             } else {
                 startActivity(new Intent(Splash.this, GetStarted.class));
             }

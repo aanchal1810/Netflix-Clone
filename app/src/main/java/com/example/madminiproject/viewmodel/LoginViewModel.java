@@ -21,6 +21,7 @@ public class LoginViewModel extends ViewModel {
     }
 
     public void authenticateUser(String email, String password) {
+        authResult.setValue(new AuthResult.Loading());
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -41,6 +42,8 @@ public class LoginViewModel extends ViewModel {
 
     public static abstract class AuthResult {
         private AuthResult() {}
+
+        public static final class Loading extends AuthResult {}
 
         public static final class Success extends AuthResult {
             private final FirebaseUser user;
