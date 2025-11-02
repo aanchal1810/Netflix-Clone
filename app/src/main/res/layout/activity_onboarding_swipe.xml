@@ -45,20 +45,6 @@
                     app:fabSize="auto"
                     app:rippleColor="#22ED7563" />
 
-                <!--                <com.google.android.material.floatingactionbutton.FloatingActionButton-->
-                <!--                    android:id="@+id/rewind_button"-->
-                <!--                    android:layout_width="wrap_content"-->
-                <!--                    android:layout_height="wrap_content"-->
-                <!--                    android:layout_centerInParent="true"-->
-                <!--                    android:layout_marginStart="32dp"-->
-                <!--                    android:layout_marginLeft="32dp"-->
-                <!--                    android:layout_marginEnd="32dp"-->
-                <!--                    android:layout_marginRight="32dp"-->
-                <!--                    android:src="@drawable/rewind_blue_24dp"-->
-                <!--                    app:backgroundTint="@android:color/white"-->
-                <!--                    app:fabSize="mini"-->
-                <!--                    app:rippleColor="#225BC9FA" />-->
-
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:id="@+id/like_button"
                     android:layout_width="194dp"
@@ -94,120 +80,12 @@
 
     </LinearLayout>
 
+    <Button
+        android:id="@+id/continue_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Continue"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="16dp" />
+
 </androidx.drawerlayout.widget.DrawerLayout>
-
-    <!--<?xml version="1.0" encoding="utf-8"?>-->
-    <!--<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"-->
-    <!--    xmlns:app="http://schemas.android.com/apk/res-auto"-->
-    <!--    xmlns:tools="http://schemas.android.com/tools"-->
-    <!--    android:id="@+id/main"-->
-    <!--    android:layout_width="match_parent"-->
-    <!--    android:layout_height="match_parent"-->
-    <!--    tools:context=".OnboardingSwipe">-->
-
-    <!--    <RelativeLayout-->
-    <!--        android:layout_width="match_parent"-->
-    <!--        android:layout_height="match_parent"-->
-    <!--        android:layout_marginStart="24dp"-->
-    <!--        android:layout_marginEnd="24dp"-->
-    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
-    <!--        app:layout_constraintEnd_toEndOf="parent"-->
-    <!--        app:layout_constraintStart_toStartOf="parent"-->
-    <!--        app:layout_constraintTop_toTopOf="parent">-->
-
-    <!--        &lt;!&ndash; Card Stack &ndash;&gt;-->
-
-
-    <!--        &lt;!&ndash; Like / Dislike Buttons &ndash;&gt;-->
-
-    <!--        <androidx.cardview.widget.CardView-->
-    <!--            android:id="@+id/card_stack_view_holder"-->
-    <!--            android:layout_width="match_parent"-->
-    <!--            android:layout_height="500dp"-->
-    <!--            android:layout_alignParentTop="true"-->
-    <!--            android:layout_marginTop="50dp"-->
-    <!--            app:cardCornerRadius="20dp"-->
-    <!--            app:cardElevation="4dp"-->
-    <!--            app:cardUseCompatPadding="true">-->
-
-    <!--            <com.yuyakaido.android.cardstackview.CardStackView-->
-    <!--                android:id="@+id/card_stack_view"-->
-    <!--                android:layout_width="match_parent"-->
-    <!--                android:layout_height="488dp"-->
-    <!--                android:clipToOutline="true"-->
-    <!--                tools:ignore="MissingClass" />-->
-    <!--        </androidx.cardview.widget.CardView>-->
-
-    <!--        <LinearLayout-->
-    <!--            android:id="@+id/buttonsLayout"-->
-    <!--            android:layout_width="wrap_content"-->
-    <!--            android:layout_height="wrap_content"-->
-    <!--            android:layout_below="@id/card_stack_view_holder"-->
-    <!--            android:layout_centerHorizontal="true"-->
-    <!--            android:layout_marginTop="24dp"-->
-    <!--            android:orientation="horizontal">-->
-
-    <!--            <ImageButton-->
-    <!--                android:id="@+id/dislikeBtn"-->
-    <!--                android:layout_width="70dp"-->
-    <!--                android:layout_height="70dp"-->
-    <!--                android:background="@drawable/button_border"-->
-    <!--                android:backgroundTint="@color/netflix_red"-->
-    <!--                android:src="@drawable/swipe_cross" />-->
-
-    <!--            <Space-->
-    <!--                android:layout_width="50dp"-->
-    <!--                android:layout_height="wrap_content" />-->
-
-    <!--            <ImageButton-->
-    <!--                android:id="@+id/likeBtn"-->
-    <!--                android:layout_width="70dp"-->
-    <!--                android:layout_height="70dp"-->
-    <!--                android:background="@drawable/swipe_button_bg"-->
-    <!--                android:src="@drawable/swipe_tick" />-->
-
-    <!--        </LinearLayout>-->
-
-    <!--    </RelativeLayout>-->
-
-    <!--    <androidx.cardview.widget.CardView-->
-    <!--        android:id="@+id/cardView"-->
-    <!--        android:layout_width="0dp"-->
-    <!--        android:layout_height="0dp"-->
-    <!--        android:layout_marginStart="32dp"-->
-    <!--        android:layout_marginTop="40dp"-->
-    <!--        android:layout_marginEnd="32dp"-->
-    <!--        android:layout_marginBottom="40dp"-->
-    <!--        app:cardCornerRadius="16dp"-->
-    <!--        app:layout_constraintBottom_toTopOf="@+id/linearLayout"-->
-    <!--        app:layout_constraintEnd_toEndOf="parent"-->
-    <!--        app:layout_constraintStart_toStartOf="parent"-->
-    <!--        app:layout_constraintTop_toTopOf="parent" />-->
-
-    <!--    <LinearLayout-->
-    <!--        android:id="@+id/linearLayout"-->
-    <!--        android:layout_width="0dp"-->
-    <!--        android:layout_height="wrap_content"-->
-    <!--        android:layout_marginStart="32dp"-->
-    <!--        android:layout_marginEnd="32dp"-->
-    <!--        android:layout_marginBottom="80dp"-->
-    <!--        android:orientation="horizontal"-->
-    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
-    <!--        app:layout_constraintEnd_toEndOf="parent"-->
-    <!--        app:layout_constraintHorizontal_bias="0.0"-->
-    <!--        app:layout_constraintStart_toStartOf="parent">-->
-
-    <!--        <FrameLayout-->
-    <!--            android:layout_width="178dp"-->
-    <!--            android:layout_height="100dp">-->
-
-    <!--        </FrameLayout>-->
-
-    <!--        <FrameLayout-->
-    <!--            android:layout_width="match_parent"-->
-    <!--            android:layout_height="match_parent">-->
-
-    <!--        </FrameLayout>-->
-    <!--    </LinearLayout>-->
-
-    <!--</androidx.constraintlayout.widget.ConstraintLayout>-->

@@ -11,6 +11,8 @@ cardview = "1.0.0"
 googleGmsGoogleServices = "4.4.4"
 firebaseAuth = "24.0.1"
 lifecycle = "2.8.3"
+imageCropper = "4.5.0"
+firebaseStorage = "21.0.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -24,6 +26,8 @@ cardview = { group = "androidx.cardview", name = "cardview", version.ref = "card
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuth" }
 lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycle" }
+image-cropper = { group = "com.vanniktech", name = "android-image-cropper", version.ref = "imageCropper" }
+firebase-storage = { group = "com.google.firebase", name = "firebase-storage", version.ref = "firebaseStorage" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
