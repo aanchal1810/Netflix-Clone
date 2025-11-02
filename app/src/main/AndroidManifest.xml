@@ -16,8 +16,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MADMiniProject">
         <activity
-            android:name=".Navbar"
-            android:exported="false"/>
+            android:name=".ProfileTransitionActivity"
+            android:exported="false" />
         <activity
             android:name=".Search"
             android:exported="false" />
@@ -33,7 +33,8 @@
         </activity>
         <activity
             android:name=".ProfileSelectionActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowContentTransitions="true" />
         <activity
             android:name=".OnboardingSwipe"
             android:exported="false" />
@@ -45,15 +46,14 @@
             android:exported="false" />
         <activity
             android:name=".MainActivity"
-            android:exported="true" />
+            android:exported="true"
+            android:windowContentTransitions="true" />
         <activity
             android:name=".GetStarted"
             android:exported="true" />
-
         <activity
             android:name="com.canhub.cropper.CropImageActivity"
             android:theme="@style/Theme.AppCompat" />
-
     </application>
 
 </manifest>
