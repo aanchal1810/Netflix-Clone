@@ -1,36 +1,137 @@
 package com.example.madminiproject.viewmodel;
 
+import android.util.Log;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+
 import com.example.madminiproject.Movie;
+import com.example.madminiproject.MovieResponse;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class OnboardingViewModel extends ViewModel {
 
-    private final MutableLiveData<List<Movie>> movies = new MutableLiveData<>();
+    private static final String TAG = "OnboardingViewModel";
+
+    private final MutableLiveData<List<Movie>> movies = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<String>> movietitles = new MutableLiveData<>();
+    private final MainRepository repository = new MainRepository();
 
     public OnboardingViewModel() {
-        movies.setValue(createSpots());
+        fetchInitialMovies();
     }
 
     public LiveData<List<Movie>> getMovies() {
         return movies;
     }
 
-    private List<Movie> createSpots() {
-        List<Movie> spots = new ArrayList<>();
-        spots.add(new Movie("Moana", "https://i.pinimg.com/1200x/4a/d6/c0/4ad6c0738cb7b23bc9dac91e1d37d770.jpg"));
-        spots.add(new Movie("Frozen", "https://i.pinimg.com/736x/c5/7a/a1/c57aa1543487d2bcb69c0217bead64a8.jpg"));
-        spots.add(new Movie("Tangled", "https://i.pinimg.com/736x/3c/69/31/3c69316b0386a0548947b68408446472.jpg"));
-        spots.add(new Movie("Confessions of a Shopaholic", "https://i.pinimg.com/736x/79/d1/15/79d115e00256c8b89446f39a9a618dd7.jpg"));
-        spots.add(new Movie("The devil wears the Prada", "https://i.pinimg.com/1200x/50/6a/e1/506ae1e81ceaafa792c8642fde804298.jpg"));
-        spots.add(new Movie("Mama Mia!", "https://i.pinimg.com/1200x/ea/a7/13/eaa7133c088208a12df356c0f9d4120f.jpg"));
-        spots.add(new Movie("Monte Carlo", "https://i.pinimg.com/1200x/f4/ab/67/f4ab6785a255b37e8431d3aa12875f82.jpg"));
-        spots.add(new Movie("27 Dresses", "https://i.pinimg.com/736x/71/65/57/7165578b8b040424fe6e847ed5c8cca3.jpg"));
-        spots.add(new Movie("Bride Wars", "https://i.pinimg.com/736x/9b/f7/44/9bf744c77dcf1192c721ba229e0d3c26.jpg"));
-        spots.add(new Movie("13 Going on 30", "https://i.pinimg.com/736x/fa/26/46/fa2646d5fccc0d1a4f95efc667fc2b14.jpg"));
-        return spots;
+    public LiveData<List<String>> getMovieTitles() {
+        return movietitles;
+    }
+
+    /**
+     * Fetches a list of initial movie titles from your repository, then for each title,
+     * makes a TMDB API call to fetch its poster and details.
+     */
+    private void fetchInitialMovies() {
+        Log.v(TAG, "Fetching initial movies...");
+
+        Call<List<String>> call = repository.getInitialMovie();
+
+        call.enqueue(new Callback<List<String>>() {
+            @Override
+            public void onResponse(Call<List<String>> call, Response<List<String>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<String> titles = response.body();
+                    movietitles.postValue(titles);
+                    Log.v(TAG, "Initial movie titles: " + titles);
+
+                    // Get a list of API calls for each title
+                    List<Call<MovieResponse>> movieTitleCalls = repository.getMoviePosters(Objects.requireNonNull(titles));
+
+                    for (Call<MovieResponse> moviePosterCall : movieTitleCalls) {
+                        fetchMoviePoster(moviePosterCall);
+                    }
+
+                } else {
+                    movietitles.postValue(null);
+                    Log.e(TAG, "Failed to fetch initial movie titles. Code: " + response.code());
+                    if (response.errorBody() != null) {
+                        try {
+                            Log.e(TAG, "Error body: " + response.errorBody().string());
+                        } catch (IOException e) {
+                            Log.e(TAG, "Failed to read error body", e);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<String>> call, Throwable t) {
+                movietitles.postValue(null);
+                Log.e(TAG, "Failed to fetch initial movies: " + t.getMessage(), t);
+            }
+        });
+    }
+
+    /**
+     * Fetches a movie’s details/poster from TMDB and updates LiveData.
+     */
+    private void fetchMoviePoster(Call<MovieResponse> moviePosterCall) {
+        moviePosterCall.enqueue(new Callback<MovieResponse>() {
+            @Override
+            public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    try {
+                        MovieResponse body = response.body();
+                        if (body.getResults() != null && !body.getResults().isEmpty()) {
+                            String moviename = body.getResults().get(0).getTitle();
+                            String movieposterpath = body.getResults().get(0).getFullPosterUrl();
+
+                            Log.v(TAG, "Movie Name: " + moviename);
+                            Log.v(TAG, "Poster URL: " + movieposterpath);
+
+                            // Add to current movie list and post the updated list
+                            List<Movie> currentList = movies.getValue();
+                            if (currentList == null) currentList = new ArrayList<>();
+                            currentList.add(new Movie(moviename, movieposterpath));
+                            movies.postValue(currentList);
+                        } else {
+                            Log.w(TAG, "No results found in TMDB response.");
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error parsing TMDB response", e);
+                    }
+                } else {
+                    Log.e(TAG, "TMDB API Response failed. Code: " + response.code());
+                    if (response.errorBody() != null) {
+                        try {
+                            Log.e(TAG, "Error body: " + response.errorBody().string());
+                        } catch (IOException e) {
+                            Log.e(TAG, "Failed to read error body", e);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<MovieResponse> call, Throwable t) {
+                Log.e(TAG, "TMDB API Call failed: " + t.getMessage(), t);
+                if (t instanceof java.net.UnknownHostException) {
+                    Log.e(TAG, "Network error: Cannot reach TMDB API. Check internet connection.");
+                } else if (t instanceof javax.net.ssl.SSLException) {
+                    Log.e(TAG, "SSL error: Problem with HTTPS connection to TMDB.");
+                }
+            }
+        });
     }
 }
