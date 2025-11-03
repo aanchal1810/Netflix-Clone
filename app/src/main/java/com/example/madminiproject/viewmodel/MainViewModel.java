@@ -111,7 +111,9 @@ public class MainViewModel extends AndroidViewModel {
                 public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
                     if (response.isSuccessful() && response.body() != null) {
                         List<Movie> results = response.body().getResults();
+                        Log.v("OnboardingViewModel","Aanchal Code Title: " + response.body());
                         if (results != null && !results.isEmpty()) {
+
                             newMovies.add(results.get(0));
                             movieList.setValue(new ArrayList<>(newMovies));
                         }
