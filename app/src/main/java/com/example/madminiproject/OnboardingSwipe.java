@@ -16,6 +16,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 
+import com.example.madminiproject.viewmodel.MovieRequest;
 import com.example.madminiproject.viewmodel.OnboardingViewModel;
 import com.yuyakaido.android.cardstackview.CardStackLayoutManager;
 import com.yuyakaido.android.cardstackview.CardStackListener;
@@ -48,13 +49,56 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
             cardStackView.setAdapter(adapter);
         });
 
+
         setupCardStackView();
         setupButton();
+
 
         Button continueButton = findViewById(R.id.continue_button);
         continueButton.setOnClickListener(v -> {
             startActivity(new Intent(OnboardingSwipe.this, ProfileSelectionActivity.class));
             finish();
+        });
+
+        manager = new CardStackLayoutManager(this, new CardStackListener() {
+            @Override
+            public void onCardDragging(Direction direction, float ratio) {
+
+            }
+
+            @Override
+            public void onCardSwiped(Direction direction) {
+                if (direction == Direction.Right){
+                    Log.d("CardStack", "Swiped Right!");
+                    int swippedMovieIndex = manager.getTopPosition() - 1;
+                    if (swippedMovieIndex >= 0 && swippedMovieIndex < adapter.getItemCount()){
+                        Movie swippedMovie = adapter.getSpots().get(swippedMovieIndex);
+                        Log.d("CardStack", "Swiped Right on: " + swippedMovie.getTitle());
+                        viewModel.fetchRecommendedMovies(swippedMovie.getTitle());
+                    }
+
+                }
+            }
+
+            @Override
+            public void onCardRewound() {
+
+            }
+
+            @Override
+            public void onCardCanceled() {
+
+            }
+
+            @Override
+            public void onCardAppeared(View view, int position) {
+
+            }
+
+            @Override
+            public void onCardDisappeared(View view, int position) {
+
+            }
         });
     }
 

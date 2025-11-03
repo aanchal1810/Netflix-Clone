@@ -25,6 +25,9 @@ public class MainRepository {
     public Call<List<String>> getInitialMovie(){
         return movieapiService.getInitialMovies();
     }
+    public Call<List<String>> getRecommendedMovie(MovieRequest movieRequest){
+        return movieapiService.getRecommendedMovies(movieRequest);
+    }
     public List<Call<MovieResponse>> getMoviePosters(List<String> movieTitle){
         List<Call<MovieResponse>> call = new ArrayList<>();
         String apiKey = BuildConfig.TMDB_API_KEY;
