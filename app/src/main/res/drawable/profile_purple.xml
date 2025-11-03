@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 1. Background gradient with rounded corners -->
+    <item android:drawable="@drawable/profile_bg_purple" />
+
+    <!-- 2. Foreground vector face -->
+    <item android:drawable="@drawable/profile_face" />
+
+</layer-list>
