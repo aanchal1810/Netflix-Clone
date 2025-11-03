@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
         View navbarBottom = findViewById(R.id.navbar_bottom);
         ImageView profileIcon = navbarBottom.findViewById(R.id.navbar_profile_icon);
         ImageView mainProfileAvatar = findViewById(R.id.main_profile_avatar);
+        boolean shouldAnimate = getIntent().getBooleanExtra("RUN_AVATAR_ANIMATION", false);
 
         String avatarUrl = getIntent().getStringExtra("PROFILE_AVATAR_URL");
         if (avatarUrl != null) {
@@ -55,6 +56,26 @@ public class MainActivity extends AppCompatActivity {
         searchIcon.setOnClickListener(v ->
                 startActivity(new Intent(this, Search.class))
         );
+        if (shouldAnimate) {
+            // Animate avatar into navbar when activity starts
+            mainProfileAvatar.postDelayed(() -> {
+                int[] iconLoc = new int[2];
+                profileIcon.getLocationOnScreen(iconLoc);
+                int[] avatarLoc = new int[2];
+                mainProfileAvatar.getLocationOnScreen(avatarLoc);
+
+                float targetX = iconLoc[0] - avatarLoc[0];
+                float targetY = iconLoc[1] - avatarLoc[1];
+
+                mainProfileAvatar.animate()
+                        .scaleX(0.25f)
+                        .scaleY(0.25f)
+                        .translationX(targetX)
+                        .translationY(targetY)
+                        .setDuration(600)
+                        .start();
+            }, 400);
+        }
 
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         mainViewModel.getMovieList().observe(this, movies -> {
@@ -62,24 +83,6 @@ public class MainActivity extends AppCompatActivity {
             movieList.addAll(movies);
             adapter.notifyDataSetChanged();
         });
-
-        // Animate avatar into navbar when activity starts
-        mainProfileAvatar.postDelayed(() -> {
-            int[] iconLoc = new int[2];
-            profileIcon.getLocationOnScreen(iconLoc);
-            int[] avatarLoc = new int[2];
-            mainProfileAvatar.getLocationOnScreen(avatarLoc);
-
-            float targetX = iconLoc[0] - avatarLoc[0];
-            float targetY = iconLoc[1] - avatarLoc[1];
-
-            mainProfileAvatar.animate()
-                    .scaleX(0.25f)
-                    .scaleY(0.25f)
-                    .translationX(targetX)
-                    .translationY(targetY)
-                    .setDuration(600)
-                    .start();
-        }, 400);
+        getIntent().removeExtra("RUN_AVATAR_ANIMATION");
     }
 }
