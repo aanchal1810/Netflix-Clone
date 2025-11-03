@@ -42,6 +42,43 @@ public class OnboardingViewModel extends ViewModel {
      * Fetches a list of initial movie titles from your repository, then for each title,
      * makes a TMDB API call to fetch its poster and details.
      */
+    public void fetchRecommendedMovies(String moviename){
+        MovieRequest movieRequest = new MovieRequest(moviename);
+        Call<List<String>> call = repository.getRecommendedMovie(movieRequest);
+        call.enqueue(new Callback<List<String>>() {
+            @Override
+            public void onResponse(Call<List<String>> call, Response<List<String>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<String> titles = response.body();
+                    movietitles.postValue(titles);
+                    Log.v(TAG, "Recommended movie titles: " + titles);
+
+                    // Get a list of API calls for each title
+                    List<Call<MovieResponse>> movieTitleCalls = repository.getMoviePosters(Objects.requireNonNull(titles));
+
+                    for (Call<MovieResponse> moviePosterCall : movieTitleCalls) {
+                        fetchMoviePoster(moviePosterCall);
+                    }
+
+                } else {
+                    movietitles.postValue(null);
+                    Log.e(TAG, "Failed to fetch recommended movie titles. Code: " + response.code());
+                    if (response.errorBody() != null) {
+                        try {
+                            Log.e(TAG, "Error body: " + response.errorBody().string());
+                        } catch (IOException e) {
+                            Log.e(TAG, "Failed to read error body", e);
+                        }
+                    }
+                }
+            }
+            @Override
+            public void onFailure(Call<List<String>> call, Throwable t) {
+                movietitles.postValue(null);
+                Log.e(TAG, "Failed to fetch recommended movies: " + t.getMessage(), t);
+            }
+        });
+    }
     private void fetchInitialMovies() {
         Log.v(TAG, "Fetching initial movies...");
 
