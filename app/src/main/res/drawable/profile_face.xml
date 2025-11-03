@@ -1,0 +1,34 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="194dp"
+    android:height="194dp"
+    android:viewportWidth="194"
+    android:viewportHeight="194">
+
+    <!-- Rounded square background -->
+
+
+    <!-- Left eye -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M26,47
+                          a13,13 0 1,0 26,0
+                          a13,13 0 1,0 -26,0z" />
+
+    <!-- Right eye -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M143,47
+                          a13,13 0 1,0 26,0
+                          a13,13 0 1,0 -26,0z" />
+
+    <!-- Smile -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M74.3953,93.5921
+                          C88.226,101.559 96.5704,105.304 117.124,105.071
+                          C137.5,103.5 148.5,100.5 161.766,93.5921
+                          C166.5,90.5 171,95.4998 167,98.4997
+                          C149.5,106.5 141.21,110.509 117.124,111.5
+                          C94.5,110 87.5002,109 70.0002,98.4996
+                          C67.4999,96.4996 70.0003,91.4996 74.3953,93.5921Z" />
+</vector>

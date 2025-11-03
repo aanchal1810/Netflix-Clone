@@ -1,6 +1,8 @@
 package com.example.madminiproject;
 
 import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -48,6 +50,14 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.MovieViewH
             // optional: show a placeholder if no poster_path
             holder.imgPoster.setImageResource(android.R.drawable.ic_menu_report_image);
         }
+
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(context, DetailsActivity.class);
+            Bundle bundle = new Bundle();
+            bundle.putSerializable("movie", m);
+            intent.putExtras(bundle);
+            context.startActivity(intent);
+        });
     }
 
     @Override

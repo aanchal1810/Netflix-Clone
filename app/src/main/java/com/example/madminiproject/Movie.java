@@ -1,36 +1,73 @@
 package com.example.madminiproject;
 
 import com.google.gson.annotations.SerializedName;
+import java.io.Serializable;
 
-public class Movie {
-        @SerializedName("id")
-        private int id;
-        @SerializedName("title")
-        private String title;
+public class Movie implements Serializable {
+    @SerializedName("id")
+    private int id;
 
-        @SerializedName("poster_path")
-        private String posterPath;
+    @SerializedName("title")
+    private String title;
 
-        public Movie(String title, String posterPath) {
-                this.title = title;
-                this.posterPath = posterPath;
+    @SerializedName("poster_path")
+    private String posterPath;
 
-        }
-        public int getId() {
-                return id;
-        }
+    @SerializedName("backdrop_path")
+    private String backdropPath;
 
-        public String getTitle() {
-                return title;
-        }
+    @SerializedName("overview")
+    private String overview; // optional
 
-        public String getPosterPath() {
-                return posterPath;
-        }
+    private boolean isFavorite = false;
 
-        public String getFullPosterUrl() {
-                // TMDB base URL for images
-                return "https://image.tmdb.org/t/p/w500" + posterPath;
-        }
+    public Movie(String title, String posterPath, String backdropPath, String overview) {
+        this.title = title;
+        this.posterPath = posterPath;
+        this.backdropPath = backdropPath;
+        this.overview = overview;
+    }
+    public Movie(String title, String posterPath) {
+        this.title = title;
+        this.posterPath = posterPath;
+        this.backdropPath = backdropPath;
+        this.overview = overview;
+    }
 
+    public int getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getPosterPath() {
+        return posterPath;
+    }
+
+    public String getBackdropPath() {
+        return backdropPath;
+    }
+
+    // ✅ Safe fallback for null overview
+    public String getOverview() {
+        return overview != null ? overview : "No overview available.";
+    }
+
+    public String getFullPosterUrl() {
+        return "https://image.tmdb.org/t/p/w500" + posterPath;
+    }
+
+    public String getFullBackdropUrl() {
+        return "https://image.tmdb.org/t/p/w1280" + backdropPath;
+    }
+
+    public boolean isFavorite() {
+        return isFavorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        isFavorite = favorite;
+    }
 }

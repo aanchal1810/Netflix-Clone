@@ -10,15 +10,19 @@
     <androidx.cardview.widget.CardView
         android:layout_width="100dp"
         android:layout_height="100dp"
-        app:cardCornerRadius="50dp"
-        app:cardBackgroundColor="@android:color/transparent">
+        app:cardCornerRadius="8dp"
+        app:cardBackgroundColor="@android:color/transparent"
+        android:transitionName="profile_avatar_transition"
+        app:cardUseCompatPadding="true"
+        app:cardPreventCornerOverlap="false"
+        android:clipToOutline="true">
 
         <ImageView
             android:id="@+id/profile_avatar"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="centerCrop"
-            android:foreground="@drawable/circular_border" />
+             />
 
     </androidx.cardview.widget.CardView>
 
