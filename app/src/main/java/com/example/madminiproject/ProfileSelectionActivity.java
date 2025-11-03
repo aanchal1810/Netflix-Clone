@@ -1,9 +1,15 @@
 package com.example.madminiproject;
 
+import android.app.ActivityOptions;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.transition.ArcMotion;
+import android.transition.ChangeBounds;
+import android.transition.Transition;
 import android.view.View;
+import android.view.Window;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
@@ -35,7 +41,6 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
     private ProfileAdapter adapter;
     private ProgressBar loadingSpinner;
     private RecyclerView recyclerView;
-    private TextView addProfileButton;
     private String profileName;
     private ImageView dialogAvatarImage;
     private Uri selectedImageUri;
@@ -55,16 +60,19 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Window window = getWindow();
+        window.requestFeature(Window.FEATURE_CONTENT_TRANSITIONS);
+        window.setSharedElementEnterTransition(makePathMotion());
+        window.setSharedElementExitTransition(makePathMotion());
         setContentView(R.layout.activity_profile_selection);
 
         viewModel = new ViewModelProvider(this).get(ProfileSelectionViewModel.class);
 
         recyclerView = findViewById(R.id.profiles_recycler_view);
-        recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+        recyclerView.setLayoutManager(new GridLayoutManager(this, 3));
         adapter = new ProfileAdapter(new ArrayList<>(), this);
         recyclerView.setAdapter(adapter);
         loadingSpinner = findViewById(R.id.loading_spinner);
-        addProfileButton = findViewById(R.id.add_profile_button);
 
         Animation fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in);
 
@@ -76,7 +84,7 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
 
         viewModel.getNavigateToMain().observe(this, navigate -> {
             if (navigate) {
-                startActivity(new Intent(ProfileSelectionActivity.this, MainActivity.class));
+                startActivity(new Intent(ProfileSelectionActivity.this, ProfileTransitionActivity.class));
                 finish();
             }
         });
@@ -87,16 +95,10 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
         });
 
         viewModel.isProfileLimitReached().observe(this, limitReached -> {
-            addProfileButton.setVisibility(limitReached ? View.GONE : View.VISIBLE);
+            adapter.setProfileLimitReached(limitReached);
+            adapter.setProfileLimitReached(limitReached);
         });
 
-        addProfileButton.setOnClickListener(v -> {
-            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-                showAddProfileDialog();
-            } else {
-                Toast.makeText(this, "You must be logged in to add a profile.", Toast.LENGTH_SHORT).show();
-            }
-        });
 
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             loadingSpinner.setVisibility(View.VISIBLE);
@@ -108,9 +110,27 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
     }
 
     @Override
-    public void onProfileSelected(Profile profile) {
+    public void onProfileSelected(Profile profile, View sharedView) {
+
         viewModel.onProfileSelected(profile);
+        Intent intent = new Intent(this, ProfileTransitionActivity.class);
+        intent.putExtra("PROFILE_AVATAR_URL", profile.getAvatarUrl());
+        intent.putExtra("TRANSITION_NAME", sharedView.getTransitionName());
+
+        ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(
+                this, sharedView, sharedView.getTransitionName()
+        );
+        startActivity(intent, options.toBundle());
     }
+    @Override
+    public void onAddProfileClicked() {
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            showAddProfileDialog();
+        } else {
+            Toast.makeText(this, "You must be logged in to add a profile.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
 
     private void showAddProfileDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogCustom);
@@ -158,5 +178,18 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
                 new CropImageContractOptions(null, cropOptions);
 
         cropImage.launch(options);
+    }
+
+    private Transition makePathMotion() {
+        ArcMotion arcMotion = new ArcMotion();
+        arcMotion.setMinimumHorizontalAngle(50f);
+        arcMotion.setMinimumVerticalAngle(50f);
+
+        ChangeBounds changeBounds = new ChangeBounds();
+        changeBounds.setPathMotion(arcMotion);
+        changeBounds.setDuration(800);
+        changeBounds.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        return changeBounds;
     }
 }

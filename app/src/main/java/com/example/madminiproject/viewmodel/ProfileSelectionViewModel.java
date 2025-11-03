@@ -107,11 +107,35 @@ public class ProfileSelectionViewModel extends ViewModel {
     }
 
     private void addProfileToFirestore(String userId, String profileName, String avatarUrl) {
-        Profile newProfile = new Profile(profileName, avatarUrl);
+        List<Profile> currentProfiles = profiles.getValue();
+        if (currentProfiles == null) currentProfiles = new ArrayList<>();
+
+        int colorIndex = getNextAvailableColor(currentProfiles);
+
+        Profile newProfile = new Profile(profileName, avatarUrl, colorIndex);
         db.collection("users").document(userId).collection("profiles").add(newProfile)
                 .addOnSuccessListener(documentReference -> fetchProfiles())
                 .addOnFailureListener(e -> {
                     errorMessage.setValue("Failed to add profile: " + e.getMessage());
                 });
     }
+
+    private int getNextAvailableColor(List<Profile> currentProfiles) {
+        boolean[] usedColors = new boolean[5];
+
+        for (Profile p : currentProfiles) {
+            if (p.getColorIndex() >= 0 && p.getColorIndex() < 5) {
+                usedColors[p.getColorIndex()] = true;
+            }
+        }
+
+        // Return first unused color
+        for (int i = 0; i < 5; i++) {
+            if (!usedColors[i]) return i;
+        }
+
+        // All used — cycle or fallback
+        return currentProfiles.size() % 5;
+    }
+
 }
