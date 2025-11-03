@@ -55,6 +55,19 @@ public class CardStackAdapter extends RecyclerView.Adapter<CardStackAdapter.View
         this.movies = spots;
         notifyDataSetChanged();
     }
+    
+    /**
+     * Adds new movies to the existing list incrementally.
+     * Uses notifyItemRangeInserted for efficient updates without full refresh.
+     */
+    public void addMovies(List<Movie> newMovies) {
+        if (newMovies == null || newMovies.isEmpty()) {
+            return;
+        }
+        int startPosition = movies.size();
+        movies.addAll(newMovies);
+        notifyItemRangeInserted(startPosition, newMovies.size());
+    }
 
     public List<Movie> getSpots() {
         return movies;

@@ -26,6 +26,9 @@ import com.yuyakaido.android.cardstackview.StackFrom;
 import com.yuyakaido.android.cardstackview.SwipeAnimationSetting;
 import com.yuyakaido.android.cardstackview.SwipeableMethod;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class OnboardingSwipe extends AppCompatActivity implements CardStackListener {
 
     private DrawerLayout drawerLayout;
@@ -44,9 +47,31 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
         manager = new CardStackLayoutManager(this, this);
 
         viewModel = new ViewModelProvider(this).get(OnboardingViewModel.class);
+        final int[] previousSize = {0};
         viewModel.getMovies().observe(this, movies -> {
-            adapter = new CardStackAdapter(movies);
-            cardStackView.setAdapter(adapter);
+            if (movies == null || movies.isEmpty()) {
+                return;
+            }
+            // Create adapter once, then update it with new movies
+            // This way recommended movies are appended to initial movies in the ViewModel
+            if (adapter == null) {
+                adapter = new CardStackAdapter(movies);
+                cardStackView.setAdapter(adapter);
+                previousSize[0] = movies.size();
+            } else {
+                // If new movies were added (incremental update), use addMovies for efficiency
+                // Otherwise, use setMovies for full replacement
+                if (movies.size() > previousSize[0]) {
+                    // New movies were added, use incremental update
+                    List<Movie> newMovies = movies.subList(previousSize[0], movies.size());
+                    adapter.addMovies(new ArrayList<>(newMovies));
+                    previousSize[0] = movies.size();
+                } else {
+                    // Full list replacement (shouldn't happen often, but handle it)
+                    adapter.setMovies(movies);
+                    previousSize[0] = movies.size();
+                }
+            }
         });
 
 
@@ -60,46 +85,6 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
             finish();
         });
 
-        manager = new CardStackLayoutManager(this, new CardStackListener() {
-            @Override
-            public void onCardDragging(Direction direction, float ratio) {
-
-            }
-
-            @Override
-            public void onCardSwiped(Direction direction) {
-                if (direction == Direction.Right){
-                    Log.d("CardStack", "Swiped Right!");
-                    int swippedMovieIndex = manager.getTopPosition() - 1;
-                    if (swippedMovieIndex >= 0 && swippedMovieIndex < adapter.getItemCount()){
-                        Movie swippedMovie = adapter.getSpots().get(swippedMovieIndex);
-                        Log.d("CardStack", "Swiped Right on: " + swippedMovie.getTitle());
-                        viewModel.fetchRecommendedMovies(swippedMovie.getTitle());
-                    }
-
-                }
-            }
-
-            @Override
-            public void onCardRewound() {
-
-            }
-
-            @Override
-            public void onCardCanceled() {
-
-            }
-
-            @Override
-            public void onCardAppeared(View view, int position) {
-
-            }
-
-            @Override
-            public void onCardDisappeared(View view, int position) {
-
-            }
-        });
     }
 
     @Override
@@ -119,6 +104,25 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
     @Override
     public void onCardSwiped(Direction direction) {
         Log.d("CardStackView", "onCardSwiped: p = " + manager.getTopPosition() + ", d = " + direction);
+        
+        // Print the movie list
+        if (adapter != null && adapter.getSpots() != null) {
+            Log.d("CardStackView", "Movie List Size: " + adapter.getSpots().size());
+            for (int i = 0; i < adapter.getSpots().size(); i++) {
+                Movie movie = adapter.getSpots().get(i);
+                Log.d("CardStackView", "Movie[" + i + "]: " + movie.getTitle());
+            }
+        }
+        
+        if (direction == Direction.Right){
+            Log.d("CardStack", "Swiped Right!");
+            int swippedMovieIndex = manager.getTopPosition() - 1;
+            if (swippedMovieIndex >= 0 && swippedMovieIndex < adapter.getItemCount()){
+                Movie swippedMovie = adapter.getSpots().get(swippedMovieIndex);
+                Log.d("CardStack", "Swiped Right on: " + swippedMovie.getTitle());
+                viewModel.fetchRecommendedMovies(swippedMovie.getTitle());
+            }
+        }
     }
 
     @Override

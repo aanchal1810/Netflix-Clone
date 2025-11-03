@@ -5,8 +5,10 @@ import com.example.madminiproject.viewmodel.MovieRequest;
 import java.util.List;
 
 import retrofit2.Call;
+import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+
 
 public interface ApiService {
 
@@ -14,6 +16,6 @@ public interface ApiService {
     Call<List<String>> getInitialMovies();
 
     @POST("/recommend")
-    Call<List<String>> getRecommendedMovies(MovieRequest movieRequest);
+    Call<List<String>> getRecommendedMovies(@Body MovieRequest movieRequest);
 
 }
