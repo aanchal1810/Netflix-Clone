@@ -48,6 +48,7 @@ public class ProfileTransitionActivity extends AppCompatActivity {
     private void goToMainActivity(String avatarUrl) {
         Intent intent = new Intent(this, MainActivity.class);
         intent.putExtra("PROFILE_AVATAR_URL", avatarUrl);
+        intent.putExtra("RUN_AVATAR_ANIMATION", true);
         ActivityOptions options = ActivityOptions.makeCustomAnimation(
                 this, android.R.anim.fade_in, android.R.anim.fade_out
         );
