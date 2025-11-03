@@ -13,6 +13,7 @@ firebaseAuth = "24.0.1"
 lifecycle = "2.8.3"
 imageCropper = "4.5.0"
 firebaseStorage = "21.0.0"
+castFramework = "21.5.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -28,6 +29,7 @@ lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-view
 lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycle" }
 image-cropper = { group = "com.vanniktech", name = "android-image-cropper", version.ref = "imageCropper" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage", version.ref = "firebaseStorage" }
+play-services-cast-framework = { group = "com.google.android.gms", name = "play-services-cast-framework", version.ref = "castFramework" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
