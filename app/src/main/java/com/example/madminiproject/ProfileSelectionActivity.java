@@ -162,11 +162,11 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
     }
 
     private void openImagePicker() {
-        // Create CropImageOptions with OVAL crop shape and guidelines ON
+        // Create CropImageOptions with RECTANGLE crop shape and guidelines ON
         CropImageOptions cropOptions = new CropImageOptions(
                 true,  // include gallery
                 true,  // include camera
-                CropImageView.CropShape.OVAL, // crop shape
+                CropImageView.CropShape.RECTANGLE, // crop shape
                 CropImageView.CropCornerShape.RECTANGLE, // default
                 0, 0, 0, // corner radius, snap radius, touch radius (use default)
                 CropImageView.Guidelines.ON, // guidelines

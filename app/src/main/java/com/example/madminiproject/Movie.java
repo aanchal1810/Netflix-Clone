@@ -4,58 +4,70 @@ import com.google.gson.annotations.SerializedName;
 import java.io.Serializable;
 
 public class Movie implements Serializable {
-        @SerializedName("id")
-        private int id;
+    @SerializedName("id")
+    private int id;
 
-        @SerializedName("title")
-        private String title;
+    @SerializedName("title")
+    private String title;
 
-        @SerializedName("poster_path")
-        private String posterPath;
+    @SerializedName("poster_path")
+    private String posterPath;
 
-        @SerializedName("overview")
-        private String overview; // optional
+    @SerializedName("backdrop_path")
+    private String backdropPath;
 
-        private boolean isFavorite = false;
+    @SerializedName("overview")
+    private String overview; // optional
 
-        // ✅ Constructor without overview (optional)
-        public Movie(String title, String posterPath) {
-                this(title, posterPath, null);
-        }
+    private boolean isFavorite = false;
 
-        // ✅ Full constructor (if overview is provided)
-        public Movie(String title, String posterPath, String overview) {
-                this.title = title;
-                this.posterPath = posterPath;
-                this.overview = overview;
-        }
+    public Movie(String title, String posterPath, String backdropPath, String overview) {
+        this.title = title;
+        this.posterPath = posterPath;
+        this.backdropPath = backdropPath;
+        this.overview = overview;
+    }
+    public Movie(String title, String posterPath) {
+        this.title = title;
+        this.posterPath = posterPath;
+        this.backdropPath = backdropPath;
+        this.overview = overview;
+    }
 
-        public int getId() {
-                return id;
-        }
+    public int getId() {
+        return id;
+    }
 
-        public String getTitle() {
-                return title;
-        }
+    public String getTitle() {
+        return title;
+    }
 
-        public String getPosterPath() {
-                return posterPath;
-        }
+    public String getPosterPath() {
+        return posterPath;
+    }
 
-        // ✅ Safe fallback for null overview
-        public String getOverview() {
-                return overview != null ? overview : "No overview available.";
-        }
+    public String getBackdropPath() {
+        return backdropPath;
+    }
 
-        public String getFullPosterUrl() {
-                return "https://image.tmdb.org/t/p/w500" + posterPath;
-        }
+    // ✅ Safe fallback for null overview
+    public String getOverview() {
+        return overview != null ? overview : "No overview available.";
+    }
 
-        public boolean isFavorite() {
-                return isFavorite;
-        }
+    public String getFullPosterUrl() {
+        return "https://image.tmdb.org/t/p/w500" + posterPath;
+    }
 
-        public void setFavorite(boolean favorite) {
-                isFavorite = favorite;
-        }
+    public String getFullBackdropUrl() {
+        return "https://image.tmdb.org/t/p/w1280" + backdropPath;
+    }
+
+    public boolean isFavorite() {
+        return isFavorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        isFavorite = favorite;
+    }
 }

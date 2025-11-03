@@ -79,9 +79,7 @@ public class ProfileAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (getItemViewType(position) == VIEW_TYPE_PROFILE) {
             Profile profile = profiles.get(position);
-            int colorResId = profileBackgrounds[
-                    Math.max(0, Math.min(profile.getColorIndex(), profileBackgrounds.length - 1))
-                    ];
+            int colorResId = profileBackgrounds[position % profileBackgrounds.length];
             ((ProfileViewHolder) holder).bind(profile, listener, colorResId);
             String transitionName = "profile_avatar_transition_" + position;
             ((ProfileViewHolder) holder).avatarImageView.setTransitionName(transitionName);
@@ -111,12 +109,10 @@ public class ProfileAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         public void bind(final Profile profile, final OnProfileSelectedListener listener, int backgroundResId) {
             nameTextView.setText(profile.getName());
-            avatarImageView.setBackgroundResource(backgroundResId);
 
             Glide.with(itemView.getContext())
                     .load(profile.getAvatarUrl())
                     .placeholder(backgroundResId)
-                    .circleCrop()
                     .into(avatarImageView);
 
             itemView.setOnTouchListener((v, event) -> {
