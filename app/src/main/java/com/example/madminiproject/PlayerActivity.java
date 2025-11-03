@@ -1,10 +1,11 @@
 package com.example.madminiproject;
 
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,6 +13,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.PlaybackParameters;
+import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 
@@ -39,6 +41,21 @@ public class PlayerActivity extends AppCompatActivity {
 
         player = new ExoPlayer.Builder(this).build();
         playerView.setPlayer(player);
+
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                ImageButton exoPlay = findViewById(R.id.exo_play);
+                ImageButton exoPause = findViewById(R.id.exo_pause);
+                if (isPlaying) {
+                    exoPlay.setVisibility(View.GONE);
+                    exoPause.setVisibility(View.VISIBLE);
+                } else {
+                    exoPlay.setVisibility(View.VISIBLE);
+                    exoPause.setVisibility(View.GONE);
+                }
+            }
+        });
 
         castContext = CastContext.getSharedInstance(this);
 
@@ -71,26 +88,58 @@ public class PlayerActivity extends AppCompatActivity {
 
         player.setMediaItem(mediaItem);
         player.prepare();
+
+        Long playbackPosition = playerViewModel.getPlaybackPosition().getValue();
+        if (playbackPosition != null) {
+            player.seekTo(playbackPosition);
+        }
+
         player.play();
     }
 
     private void initializeCustomControls() {
+        ImageButton backButton = findViewById(R.id.back_button);
+        backButton.setOnClickListener(v -> onBackPressed());
+
         ImageButton exoRew = findViewById(R.id.exo_rew);
         exoRew.setOnClickListener(v -> player.seekTo(player.getCurrentPosition() - 10000));
 
         ImageButton exoFfwd = findViewById(R.id.exo_ffwd);
         exoFfwd.setOnClickListener(v -> player.seekTo(player.getCurrentPosition() + 10000));
 
-        ImageButton volumeButton = findViewById(R.id.volume_button);
-        volumeButton.setOnClickListener(v -> {
-            if (player.getVolume() > 0) {
-                player.setVolume(0f);
-                volumeButton.setImageResource(R.drawable.ic_volume_off_white_24dp);
-            } else {
-                player.setVolume(1f);
-                volumeButton.setImageResource(R.drawable.ic_volume_up_white_24dp);
+        ImageButton exoPlay = findViewById(R.id.exo_play);
+        exoPlay.setOnClickListener(v -> player.play());
+
+        ImageButton exoPause = findViewById(R.id.exo_pause);
+        exoPause.setOnClickListener(v -> player.pause());
+
+        SeekBar volumeSlider = findViewById(R.id.volume_slider);
+        ImageView volumeIcon = findViewById(R.id.volume_icon);
+
+        volumeSlider.setMax(100);
+        volumeSlider.setProgress((int) (player.getVolume() * 100));
+
+        volumeSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float volume = progress / 100f;
+                    player.setVolume(volume);
+                    if (volume == 0) {
+                        volumeIcon.setImageResource(R.drawable.ic_volume_off_white_24dp);
+                    } else {
+                        volumeIcon.setImageResource(R.drawable.ic_volume_up_white_24dp);
+                    }
+                }
             }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
         });
+
 
         ImageButton playbackSpeedButton = findViewById(R.id.playback_speed_button);
         playbackSpeedButton.setOnClickListener(v -> showPlaybackSpeedDialog());
@@ -135,6 +184,7 @@ public class PlayerActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         if (player != null) {
+            playerViewModel.setPlaybackPosition(player.getCurrentPosition());
             player.pause();
         }
     }
