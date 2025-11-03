@@ -46,6 +46,8 @@
         <activity
             android:name=".MainActivity"
             android:exported="true" />
+        <activity android:name=".DetailsActivity"
+            android:exported="false"/>
         <activity
             android:name=".GetStarted"
             android:exported="true" />

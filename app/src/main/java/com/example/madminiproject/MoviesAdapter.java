@@ -52,7 +52,7 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.MovieViewH
         }
 
         holder.itemView.setOnClickListener(v -> {
-            Intent intent = new Intent(context, PlayerActivity.class);
+            Intent intent = new Intent(context, DetailsActivity.class);
             Bundle bundle = new Bundle();
             bundle.putSerializable("movie", m);
             intent.putExtras(bundle);

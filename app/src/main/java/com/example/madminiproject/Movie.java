@@ -16,6 +16,8 @@ public class Movie implements Serializable {
         @SerializedName("overview")
         private String overview; // optional
 
+        private boolean isFavorite = false;
+
         // ✅ Constructor without overview (optional)
         public Movie(String title, String posterPath) {
                 this(title, posterPath, null);
@@ -47,5 +49,13 @@ public class Movie implements Serializable {
 
         public String getFullPosterUrl() {
                 return "https://image.tmdb.org/t/p/w500" + posterPath;
+        }
+
+        public boolean isFavorite() {
+                return isFavorite;
+        }
+
+        public void setFavorite(boolean favorite) {
+                isFavorite = favorite;
         }
 }
