@@ -69,5 +69,11 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.android.exoplayer:exoplayer:2.19.1")
+    implementation("androidx.media3:media3-exoplayer:1.4.1")
+// UI components (PlayerView, etc.)
+    implementation("androidx.media3:media3-ui:1.4.1")
+// Common classes (MediaItem, MediaMetadata, PlaybackParameters)
+    implementation("androidx.media3:media3-common:1.4.1")
+
+    implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
 }
