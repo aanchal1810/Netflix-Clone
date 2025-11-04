@@ -17,7 +17,9 @@
         android:networkSecurityConfig="@xml/network_security_config"
         >
 
-
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="com.example.madminiproject.CastOptionsProvider" />
         <activity
             android:name=".Search"
             android:exported="false"

@@ -127,7 +127,6 @@ public class ProfileAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             Glide.with(itemView.getContext())
                     .load(profile.getAvatarUrl())
                     .placeholder(backgroundResId)
-                    .circleCrop()
                     .into(avatarImageView);
 
             itemView.setOnClickListener(v -> {

@@ -173,7 +173,7 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
         CropImageOptions cropOptions = new CropImageOptions(
                 true,
                 true,
-                CropImageView.CropShape.OVAL,
+                CropImageView.CropShape.RECTANGLE,
                 CropImageView.CropCornerShape.RECTANGLE,
                 0, 0, 0,
                 CropImageView.Guidelines.ON,
