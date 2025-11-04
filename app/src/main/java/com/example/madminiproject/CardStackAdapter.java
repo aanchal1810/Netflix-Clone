@@ -59,14 +59,46 @@ public class CardStackAdapter extends RecyclerView.Adapter<CardStackAdapter.View
     /**
      * Adds new movies to the existing list incrementally.
      * Uses notifyItemRangeInserted for efficient updates without full refresh.
+     * Filters out duplicates before adding.
      */
     public void addMovies(List<Movie> newMovies) {
         if (newMovies == null || newMovies.isEmpty()) {
             return;
         }
-        int startPosition = movies.size();
-        movies.addAll(newMovies);
-        notifyItemRangeInserted(startPosition, newMovies.size());
+        
+        // Filter out duplicates - check both within newMovies and against existing movies
+        List<Movie> uniqueNewMovies = new ArrayList<>();
+        for (Movie newMovie : newMovies) {
+            // Check if it's a duplicate within newMovies
+            boolean isDuplicateInNew = false;
+            for (Movie existing : uniqueNewMovies) {
+                if (existing.getTitle().equals(newMovie.getTitle())) {
+                    isDuplicateInNew = true;
+                    break;
+                }
+            }
+            
+            // Check if it's a duplicate against existing movies
+            boolean isDuplicateInExisting = false;
+            if (!isDuplicateInNew) {
+                for (Movie existing : movies) {
+                    if (existing.getTitle().equals(newMovie.getTitle())) {
+                        isDuplicateInExisting = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!isDuplicateInNew && !isDuplicateInExisting) {
+                uniqueNewMovies.add(newMovie);
+            }
+        }
+        
+        if (!uniqueNewMovies.isEmpty()) {
+            int startPosition = movies.size();
+            movies.addAll(uniqueNewMovies);
+            notifyItemRangeInserted(startPosition, uniqueNewMovies.size());
+        }
     }
 
     public List<Movie> getSpots() {
