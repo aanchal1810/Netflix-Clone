@@ -1,7 +1,6 @@
 package com.example.madminiproject;
 
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
@@ -13,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+
 import java.util.List;
 
 public class ProfileAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -27,9 +27,8 @@ public class ProfileAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             R.drawable.profile_pink,
             R.drawable.profile_purple
     };
+
     private boolean profileLimitReached = false;
-
-
     private List<Profile> profiles;
     private final OnProfileSelectedListener listener;
 
@@ -47,6 +46,7 @@ public class ProfileAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         this.profiles = profiles;
         notifyDataSetChanged();
     }
+
     public void setProfileLimitReached(boolean limitReached) {
         this.profileLimitReached = limitReached;
         notifyDataSetChanged();
@@ -79,10 +79,16 @@ public class ProfileAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (getItemViewType(position) == VIEW_TYPE_PROFILE) {
             Profile profile = profiles.get(position);
-            int colorResId = profileBackgrounds[position % profileBackgrounds.length];
-            ((ProfileViewHolder) holder).bind(profile, listener, colorResId);
-            String transitionName = "profile_avatar_transition_" + position;
-            ((ProfileViewHolder) holder).avatarImageView.setTransitionName(transitionName);
+            int colorResId = profileBackgrounds[
+                    Math.max(0, Math.min(profile.getColorIndex(), profileBackgrounds.length - 1))
+                    ];
+
+            ProfileViewHolder viewHolder = (ProfileViewHolder) holder;
+            viewHolder.bind(profile, listener, colorResId);
+
+            // Set unique transition name for shared element animation
+            String transitionName = "profile_transition_" + position;
+            viewHolder.avatarImageView.setTransitionName(transitionName);
         } else {
             ((AddProfileViewHolder) holder).bind(listener);
         }
@@ -93,6 +99,9 @@ public class ProfileAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         return profileLimitReached ? profiles.size() : profiles.size() + 1;
     }
 
+    // -------------------------
+    // Profile ViewHolder
+    // -------------------------
     static class ProfileViewHolder extends RecyclerView.ViewHolder {
         private final ImageView avatarImageView;
         private final TextView nameTextView;
@@ -103,31 +112,45 @@ public class ProfileAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             super(itemView);
             avatarImageView = itemView.findViewById(R.id.profile_avatar);
             nameTextView = itemView.findViewById(R.id.profile_name);
+
             scaleUp = AnimationUtils.loadAnimation(itemView.getContext(), R.anim.scale_up);
             scaleDown = AnimationUtils.loadAnimation(itemView.getContext(), R.anim.scale_down);
         }
 
-        public void bind(final Profile profile, final OnProfileSelectedListener listener, int backgroundResId) {
+        public void bind(final Profile profile,
+                         final OnProfileSelectedListener listener,
+                         int backgroundResId) {
+
             nameTextView.setText(profile.getName());
+            avatarImageView.setBackgroundResource(backgroundResId);
 
             Glide.with(itemView.getContext())
                     .load(profile.getAvatarUrl())
                     .placeholder(backgroundResId)
+                    .circleCrop()
                     .into(avatarImageView);
 
-            itemView.setOnTouchListener((v, event) -> {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    v.startAnimation(scaleUp);
-                } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
-                    v.startAnimation(scaleDown);
-                    v.postDelayed(() -> listener.onProfileSelected(profile, avatarImageView), 100);
-
-                }
-                return true;
+            itemView.setOnClickListener(v -> {
+                // Animate scale up then scale back down before triggering listener
+                avatarImageView.animate()
+                        .scaleX(1.1f)
+                        .scaleY(1.1f)
+                        .setDuration(100)
+                        .withEndAction(() -> avatarImageView.animate()
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(100)
+                                .withEndAction(() ->
+                                        listener.onProfileSelected(profile, avatarImageView))
+                                .start())
+                        .start();
             });
         }
     }
 
+    // -------------------------
+    // Add Profile ViewHolder
+    // -------------------------
     static class AddProfileViewHolder extends RecyclerView.ViewHolder {
         private final ImageView addIcon;
         private final TextView addText;

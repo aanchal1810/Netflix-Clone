@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.lifecycle.livedata.ktx)
     implementation(libs.image.cropper)
     implementation(libs.firebase.storage)
+    implementation(libs.core.animation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
