@@ -1,6 +1,7 @@
 package com.example.madminiproject;
 
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.transition.ArcMotion;
 import android.transition.ChangeBounds;
@@ -11,6 +12,7 @@ import android.view.Window;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,6 +27,7 @@ import com.bumptech.glide.request.target.Target;
 import com.example.madminiproject.viewmodel.MainViewModel;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +40,9 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView,recyclerViewRec;
     private MoviesAdapter adapter,adapterrec;
     private MainViewModel mainViewModel;
-    private final List<Movie> movieList = new ArrayList<>(), recmovielist = new ArrayList<>();
+    private LinearLayout mainContainer;
+    private List<String> watchedMoviesTitles;
+    private final List<Movie> movieList = new ArrayList<>(), recmovielist = new ArrayList<>(),watchedMovies = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,10 +59,20 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
         EdgeToEdge.enable(this);
+        
+        // Initialize mainContainer AFTER setContentView
+        mainContainer = findViewById(R.id.mainContainer);
+
+
 
         LinearLayout navbarBottom = findViewById(R.id.bottomNav);
         ImageView profileIcon = navbarBottom.findViewById(R.id.navbar_profile_icon);
         View navbar = findViewById(R.id.navbar);
+        watchedMoviesTitles = Arrays.asList(
+                "Avatar",
+                "Stitches",
+                "1982"
+        );
 
         // basic recycler setup (adapter but don't fill data yet)
         recyclerView = findViewById(R.id.recyclerView);
@@ -73,6 +88,10 @@ public class MainActivity extends AppCompatActivity {
         );
         adapterrec = new MoviesAdapter(this, recmovielist);
         recyclerViewRec.setAdapter(adapterrec);
+
+        for (String watchedMoviesTitle : watchedMoviesTitles){
+            addCategorySection(watchedMoviesTitle);
+        }
 
         // get intent extras
         boolean shouldAnimate = getIntent().getBooleanExtra("RUN_AVATAR_ANIMATION", false);
@@ -163,6 +182,48 @@ public class MainActivity extends AppCompatActivity {
                 Log.w(TAG, "[MainActivity] RecyclerView 1 received null movies list");
             }
         });
+    }
+    private void addCategorySection(String titleText) {
+        // Create the title TextView
+        TextView title = new TextView(this);
+        title.setText("Because You Watched " + titleText);
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), Typeface.BOLD);
+        title.setPadding(16, 24, 0, 8);
+
+        // Create the RecyclerView
+        RecyclerView recyclerView = new RecyclerView(this);
+        recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        recyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        recyclerView.setClipToPadding(false);
+
+        // Each RecyclerView needs its own list and adapter
+        List<Movie> sectionMovieList = new ArrayList<>();
+        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList);
+        recyclerView.setAdapter(sectionAdapter);
+
+        // Get ViewModel and observe data for this specific section
+        if (mainViewModel == null) {
+            mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        }
+        mainViewModel.getWatchedRecMovieList(titleText).observe(this, movies -> {
+            if (movies != null) {
+                Log.d(TAG, "[MainActivity] RecyclerView section '" + titleText + "' received " + movies.size() + " movies from ViewModel");
+                sectionMovieList.clear();
+                sectionMovieList.addAll(movies);
+                sectionAdapter.notifyDataSetChanged();
+            } else {
+                Log.w(TAG, "[MainActivity] RecyclerView section '" + titleText + "' received null movies list");
+            }
+        });
+
+        // Add to main container
+        mainContainer.addView(title);
+        mainContainer.addView(recyclerView);
     }
     private void initMovieRecRecycler() {
         Log.d(TAG, "[MainActivity] Setting up RecyclerView 2 observer");

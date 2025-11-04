@@ -20,7 +20,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -37,13 +39,16 @@ public class MainViewModel extends AndroidViewModel {
 
     private static final String TAG = "MainViewModel";
 
-
     private static final String BASE_URL = "https://api.themoviedb.org/3/";
     private static final Pattern CSV_SPLIT = Pattern.compile(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
     private final MainRepository repository = new MainRepository();
     private final MutableLiveData<List<Movie>> movieList = new MutableLiveData<>();
     private final MutableLiveData<List<String>> moveTitleFinalRec = new MutableLiveData<>();
     private final MutableLiveData<List<Movie>> recMovieList = new MutableLiveData<>();
+    // Map to store separate LiveData for each category title
+    private final Map<String, MutableLiveData<List<Movie>>> watchedMovieRecListMap = new HashMap<>();
+    private final MutableLiveData<List<String>> watchedMovieTitles = new MutableLiveData<>();
+
 
     private final TmdbApi tmdbApi;
 
@@ -297,5 +302,149 @@ public class MainViewModel extends AndroidViewModel {
     public LiveData<List<Movie>> getRecMovieList() {
         getRecMovies();
         return recMovieList;
+    }
+
+    public LiveData<List<Movie>> getWatchedRecMovieList(String title) {
+        // Create or get the LiveData for this specific category
+        if (!watchedMovieRecListMap.containsKey(title)) {
+            watchedMovieRecListMap.put(title, new MutableLiveData<>());
+        }
+        getWatchRecMovies(title);
+        return watchedMovieRecListMap.get(title);
+    }
+
+    private void getWatchRecMovies(String title) {
+        MovieRequest movieRequest = new MovieRequest(title);
+        Call<List<String>> call = repository.becauseYouWatched(movieRequest);
+        call.enqueue(new Callback<List<String>>() {
+            @Override
+            public void onResponse(Call<List<String>> call, Response<List<String>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<String> titles = response.body();
+                    watchedMovieTitles.postValue(titles);
+                    Log.v(TAG, "[Category: " + title + "] Recommended movie titles: " + titles);
+
+                    // Get a list of API calls for each title
+                    List<Call<MovieResponse>> movieTitleCalls = repository.getMoviePosters(Objects.requireNonNull(titles));
+
+                    // Collect recommended movies and post them in a batch for this specific category
+                    fetchWatchedMoviePosters(movieTitleCalls, title);
+
+                } else {
+                    watchedMovieTitles.postValue(null);
+                    Log.e(TAG, "[Category: " + title + "] Failed to fetch recommended movie titles. Code: " + response.code());
+                    if (response.errorBody() != null) {
+                        try {
+                            Log.e(TAG, "Error body: " + response.errorBody().string());
+                        } catch (IOException e) {
+                            Log.e(TAG, "Failed to read error body", e);
+                        }
+                    }
+                }
+            }
+            @Override
+            public void onFailure(Call<List<String>> call, Throwable t) {
+                watchedMovieTitles.postValue(null);
+                Log.e(TAG, "[Category: " + title + "] Failed to fetch recommended movies: " + t.getMessage(), t);
+            }
+        });
+    }
+    private void fetchWatchedMoviePosters(List<Call<MovieResponse>> movieTitleCalls, String categoryTitle) {
+        if (movieTitleCalls == null || movieTitleCalls.isEmpty()) {
+            return;
+        }
+
+        // Get the specific LiveData for this category
+        MutableLiveData<List<Movie>> categoryLiveData = watchedMovieRecListMap.get(categoryTitle);
+        if (categoryLiveData == null) {
+            categoryLiveData = new MutableLiveData<>();
+            watchedMovieRecListMap.put(categoryTitle, categoryLiveData);
+        }
+
+        final int totalCalls = movieTitleCalls.size();
+        final List<Movie> recommendedMovies = Collections.synchronizedList(new ArrayList<>());
+        final int[] completedCount = {0};
+
+        for (Call<MovieResponse> moviePosterCall : movieTitleCalls) {
+            MutableLiveData<List<Movie>> finalCategoryLiveData = categoryLiveData;
+            moviePosterCall.enqueue(new Callback<MovieResponse>() {
+                @Override
+                public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        try {
+                            MovieResponse body = response.body();
+                            if (body.getResults() != null && !body.getResults().isEmpty()) {
+                                String moviename = body.getResults().get(0).getTitle();
+                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
+
+                                Log.v(TAG, "[Category: " + categoryTitle + "] Recommended Movie Name: " + moviename);
+                                Log.v(TAG, "[Category: " + categoryTitle + "] Recommended Poster URL: " + movieposterpath);
+
+                                recommendedMovies.add(new Movie(moviename, movieposterpath));
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "[Category: " + categoryTitle + "] Error parsing TMDB response", e);
+                        }
+                    }
+
+                    // Check if all calls are completed
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            // All calls completed, create a new list for this category (avoiding duplicates)
+                            List<Movie> uniqueRecommendedMovies = new ArrayList<>();
+                            for (Movie movie : recommendedMovies) {
+                                boolean isDuplicate = false;
+                                for (Movie existing : uniqueRecommendedMovies) {
+                                    if (existing.getTitle().equals(movie.getTitle())) {
+                                        isDuplicate = true;
+                                        break;
+                                    }
+                                }
+                                if (!isDuplicate) {
+                                    uniqueRecommendedMovies.add(movie);
+                                }
+                            }
+
+                            // Post the movies for this specific category
+                            finalCategoryLiveData.postValue(uniqueRecommendedMovies);
+                            Log.v(TAG, "[Category: " + categoryTitle + "] Added " + uniqueRecommendedMovies.size() + " recommended movies (duplicates filtered)");
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<MovieResponse> call, Throwable t) {
+                    Log.e(TAG, "[Category: " + categoryTitle + "] TMDB API Call failed: " + t.getMessage(), t);
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            // Even if some failed, post what we have (avoiding duplicates)
+                            if (!recommendedMovies.isEmpty()) {
+                                List<Movie> uniqueRecommendedMovies = new ArrayList<>();
+                                for (Movie movie : recommendedMovies) {
+                                    boolean isDuplicate = false;
+                                    for (Movie existing : uniqueRecommendedMovies) {
+                                        if (existing.getTitle().equals(movie.getTitle())) {
+                                            isDuplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!isDuplicate) {
+                                        uniqueRecommendedMovies.add(movie);
+                                    }
+                                }
+
+                                finalCategoryLiveData.postValue(uniqueRecommendedMovies);
+                                Log.v(TAG, "[Category: " + categoryTitle + "] Added " + uniqueRecommendedMovies.size() + " recommended movies (some may have failed, duplicates filtered)");
+                            } else {
+                                finalCategoryLiveData.postValue(new ArrayList<>());
+                                Log.v(TAG, "[Category: " + categoryTitle + "] No movies were successfully fetched");
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 }

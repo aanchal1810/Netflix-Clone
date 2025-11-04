@@ -20,5 +20,7 @@ public interface ApiService {
 
     @GET("/getfinalrecommendation")
     Call<List<String>> getFinalRec();
+    @POST("/becauseyouwatched")
+    Call<List<String>> becauseYouWatched(@Body MovieRequest movieRequest);
 
 }
