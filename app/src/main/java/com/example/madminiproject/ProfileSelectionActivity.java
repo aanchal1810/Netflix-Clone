@@ -91,6 +91,14 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
 
         viewModel.isProfileLimitReached().observe(this, adapter::setProfileLimitReached);
 
+        viewModel.getProfileAddedForOnboarding().observe(this, shouldNavigate -> {
+            if (shouldNavigate) {
+                Intent intent = new Intent(ProfileSelectionActivity.this, OnboardingSwipe.class);
+                startActivity(intent);
+                viewModel.onOnboardingNavigated(); // Reset the trigger
+            }
+        });
+
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             loadingSpinner.setVisibility(View.VISIBLE);
             viewModel.fetchProfiles();
@@ -117,6 +125,7 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
         viewModel.onProfileSelected(profile);
 
         Intent intent = new Intent(this, ProfileTransitionActivity.class);
+        intent.putExtra("PROFILE_ID", profile.getId());
         intent.putExtra("PROFILE_AVATAR_URL", profile.getAvatarUrl());
         intent.putExtra("IS_IMAGE_AVATAR", isImageAvatar);
         intent.putExtra("PROFILE_BG_RES_ID", bgResId);

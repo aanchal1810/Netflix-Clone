@@ -31,6 +31,7 @@ public class PlayerActivity extends AppCompatActivity {
     private CastContext castContext;
     private Movie movie;
     private ImageView backdropImage;
+    private String profileId;
 
     private static final String DUMMY_VIDEO_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
@@ -72,7 +73,7 @@ public class PlayerActivity extends AppCompatActivity {
         });
 
         castContext = CastContext.getSharedInstance(this);
-
+        profileId = getIntent().getStringExtra("profileId");
         String movieUrl = getIntent().getStringExtra("movie_url");
         if (movieUrl != null) {
             String movieTitle = getIntent().getStringExtra("movie_title");
@@ -80,6 +81,9 @@ public class PlayerActivity extends AppCompatActivity {
         } else {
             movie = (Movie) getIntent().getSerializableExtra("movie");
             playerViewModel.setMovie(movie);
+            if (profileId != null) {
+                playerViewModel.loadProfile(profileId);
+            }
             playerViewModel.getMovie().observe(this, this::preparePlayer);
         }
 
@@ -206,6 +210,9 @@ public class PlayerActivity extends AppCompatActivity {
         super.onPause();
         if (player != null) {
             playerViewModel.setPlaybackPosition(player.getCurrentPosition());
+            if (movie != null) {
+                playerViewModel.saveWatchHistory(movie.getTitle(), player.getCurrentPosition());
+            }
             player.pause();
         }
     }
@@ -220,6 +227,9 @@ public class PlayerActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (player != null) {
+            if (movie != null) {
+                playerViewModel.saveWatchHistory(movie.getTitle(), player.getCurrentPosition());
+            }
             player.release();
             player = null;
         }

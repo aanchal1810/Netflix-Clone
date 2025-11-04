@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private MoviesAdapter adapter,adapterrec;
     private MainViewModel mainViewModel;
     private final List<Movie> movieList = new ArrayList<>(), recmovielist = new ArrayList<>();
+    private String profileId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,19 +60,22 @@ public class MainActivity extends AppCompatActivity {
         ImageView profileIcon = navbarBottom.findViewById(R.id.navbar_profile_icon);
         View navbar = findViewById(R.id.navbar);
 
+        // get intent extras
+        profileId = getIntent().getStringExtra("PROFILE_ID");
+
         // basic recycler setup (adapter but don't fill data yet)
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         );
-        adapter = new MoviesAdapter(this, movieList);
+        adapter = new MoviesAdapter(this, movieList,profileId);
         recyclerView.setAdapter(adapter);
 
         recyclerViewRec = findViewById(R.id.recyclerViewRec);
         recyclerViewRec.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         );
-        adapterrec = new MoviesAdapter(this, recmovielist);
+        adapterrec = new MoviesAdapter(this, recmovielist,profileId);
         recyclerViewRec.setAdapter(adapterrec);
 
         // get intent extras
@@ -129,7 +133,9 @@ public class MainActivity extends AppCompatActivity {
             // explicitly disable shared element transitions for this navigation path
             getWindow().setExitTransition(null);
             getWindow().setEnterTransition(null);
-            startActivity(new Intent(this, Search.class));
+            Intent intent = new Intent(this, Search.class);
+            intent.putExtra("profileId", profileId);
+            startActivity(intent);
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         });
 

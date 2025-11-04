@@ -65,7 +65,7 @@ public class Password extends AppCompatActivity {
             } else if (authResult instanceof LoginViewModel.AuthResult.NewUser) {
                 loadingSpinner.setVisibility(View.GONE);
                 Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
-                startActivity(new Intent(Password.this, OnboardingSwipe.class));
+                startActivity(new Intent(Password.this, ProfileSelectionActivity.class));
                 finish();
             } else if (authResult instanceof LoginViewModel.AuthResult.Error) {
                 loadingSpinner.setVisibility(View.GONE);
