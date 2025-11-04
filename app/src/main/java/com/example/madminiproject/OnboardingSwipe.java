@@ -36,6 +36,7 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
     private CardStackLayoutManager manager;
     private CardStackAdapter adapter;
     private OnboardingViewModel viewModel;
+    private int swipecounter = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,29 +48,48 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
         manager = new CardStackLayoutManager(this, this);
 
         viewModel = new ViewModelProvider(this).get(OnboardingViewModel.class);
-        final int[] previousSize = {0};
         viewModel.getMovies().observe(this, movies -> {
             if (movies == null || movies.isEmpty()) {
+                // If list is empty and adapter doesn't exist, just return
+                // If adapter exists and list is empty, don't update (might be clearing in progress)
+                if (adapter == null) {
+                    return;
+                }
+                // If adapter exists but list is empty, don't do anything to avoid clearing
                 return;
             }
             // Create adapter once, then update it with new movies
             // This way recommended movies are appended to initial movies in the ViewModel
             if (adapter == null) {
-                adapter = new CardStackAdapter(movies);
+                adapter = new CardStackAdapter(new ArrayList<>(movies));
                 cardStackView.setAdapter(adapter);
-                previousSize[0] = movies.size();
             } else {
-                // If new movies were added (incremental update), use addMovies for efficiency
-                // Otherwise, use setMovies for full replacement
-                if (movies.size() > previousSize[0]) {
+                // Compare adapter's current size with ViewModel's size
+                int adapterSize = adapter.getItemCount();
+                int viewModelSize = movies.size();
+                
+                if (viewModelSize > adapterSize) {
                     // New movies were added, use incremental update
-                    List<Movie> newMovies = movies.subList(previousSize[0], movies.size());
+                    List<Movie> newMovies = movies.subList(adapterSize, viewModelSize);
                     adapter.addMovies(new ArrayList<>(newMovies));
-                    previousSize[0] = movies.size();
+                    Log.d("CardStackView", "Added " + newMovies.size() + " new movies. Adapter size: " + adapter.getItemCount());
+                } else if (viewModelSize < adapterSize) {
+                    // List was reduced - this shouldn't happen normally
+                    // Only update if we're sure it's a replacement (e.g., adapter has way more items)
+                    // Otherwise, ignore to prevent loops
+                    if (adapterSize - viewModelSize > 5) {
+                        // Significant reduction, likely a reset
+                        adapter.setMovies(new ArrayList<>(movies));
+                        Log.d("CardStackView", "List significantly reduced, resetting adapter");
+                    }
+                    // Otherwise, ignore to prevent loops
                 } else {
-                    // Full list replacement (shouldn't happen often, but handle it)
-                    adapter.setMovies(movies);
-                    previousSize[0] = movies.size();
+                    // Same size - likely a duplicate update, ignore it
+                    // Only update if adapter is empty (shouldn't happen, but safety check)
+                    if (adapterSize == 0) {
+                        adapter.setMovies(new ArrayList<>(movies));
+                    }
+                    // Otherwise, ignore same-size updates to prevent loops
                 }
             }
         });
@@ -122,6 +142,11 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
                 Log.d("CardStack", "Swiped Right on: " + swippedMovie.getTitle());
                 viewModel.fetchRecommendedMovies(swippedMovie.getTitle());
             }
+        }
+        swipecounter++;
+        if (swipecounter == 15 || manager.getTopPosition() == adapter.getItemCount()){
+            Intent intent = new Intent(OnboardingSwipe.this, MainActivity.class);
+            startActivity(intent);
         }
     }
 
