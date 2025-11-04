@@ -47,4 +47,7 @@ public class MainRepository {
     }
 
 
+    public Call<List<String>> becauseYouWatched(MovieRequest movieRequest) {
+        return movieapiService.becauseYouWatched(movieRequest);
+    }
 }
