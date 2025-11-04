@@ -14,6 +14,7 @@ import com.example.madminiproject.TmdbClient;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -49,5 +50,8 @@ public class MainRepository {
 
     public Call<List<String>> becauseYouWatched(MovieRequest movieRequest) {
         return movieapiService.becauseYouWatched(movieRequest);
+    }
+    public Call<Map<String,List<String>>> getGenreMovies(){
+        return movieapiService.getGenreMovies();
     }
 }

@@ -28,7 +28,9 @@ import com.example.madminiproject.viewmodel.MainViewModel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 import com.bumptech.glide.load.engine.GlideException;
@@ -43,6 +45,9 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout mainContainer;
     private List<String> watchedMoviesTitles;
     private final List<Movie> movieList = new ArrayList<>(), recmovielist = new ArrayList<>(),watchedMovies = new ArrayList<>();
+    private final Map<String, RecyclerView> genreRecyclerViewMap = new HashMap<>();
+    private final Map<String, MoviesAdapter> genreAdapterMap = new HashMap<>();
+    private final Map<String, List<Movie>> genreMovieListMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,7 +79,8 @@ public class MainActivity extends AppCompatActivity {
                 "1982"
         );
 
-        // basic recycler setup (adapter but don't fill data yet)
+
+        // get data from naitik
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -92,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
         for (String watchedMoviesTitle : watchedMoviesTitles){
             addCategorySection(watchedMoviesTitle);
         }
+        addGenreSection();
 
         // get intent extras
         boolean shouldAnimate = getIntent().getBooleanExtra("RUN_AVATAR_ANIMATION", false);
@@ -180,6 +187,69 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "[MainActivity] RecyclerView 1 adapter notified. Current list size: " + movieList.size());
             } else {
                 Log.w(TAG, "[MainActivity] RecyclerView 1 received null movies list");
+            }
+        });
+    }
+    private void addGenreSection() {
+        // Get ViewModel and observe data for this specific section
+        if (mainViewModel == null) {
+            mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        }
+        mainViewModel.getGenreMovie().observe(this, movies -> {
+            if (movies != null) {
+                for (Map.Entry<String, List<Movie>> entry : movies.entrySet()) {
+                    String genre = entry.getKey();
+                    List<Movie> movieObject = entry.getValue();
+
+                    // Check if this genre section already exists
+                    if (genreRecyclerViewMap.containsKey(genre)) {
+                        // Update existing RecyclerView
+                        List<Movie> sectionMovieList = genreMovieListMap.get(genre);
+                        MoviesAdapter adapter = genreAdapterMap.get(genre);
+                        if (sectionMovieList != null && adapter != null) {
+                            sectionMovieList.clear();
+                            sectionMovieList.addAll(movieObject);
+                            adapter.notifyDataSetChanged();
+                            Log.d(TAG, "[MainActivity] Updated existing genre section: " + genre + " with " + movieObject.size() + " movies");
+                        }
+                    } else {
+                        // Create new genre section
+                        TextView title = new TextView(this);
+                        title.setText(genre);
+                        title.setTextSize(18);
+                        title.setTypeface(title.getTypeface(), Typeface.BOLD);
+                        title.setPadding(16, 24, 0, 8);
+
+                        // Create the RecyclerView
+                        RecyclerView recyclerView = new RecyclerView(this);
+                        recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT,
+                                LinearLayout.LayoutParams.WRAP_CONTENT
+                        ));
+                        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+                        recyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+                        recyclerView.setClipToPadding(false);
+
+                        // Each RecyclerView needs its own list and adapter
+                        List<Movie> sectionMovieList = new ArrayList<>();
+                        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList);
+                        recyclerView.setAdapter(sectionAdapter);
+
+                        // Store references for future updates
+                        genreRecyclerViewMap.put(genre, recyclerView);
+                        genreAdapterMap.put(genre, sectionAdapter);
+                        genreMovieListMap.put(genre, sectionMovieList);
+
+                        sectionMovieList.clear();
+                        sectionMovieList.addAll(movieObject);
+                        sectionAdapter.notifyDataSetChanged();
+                        mainContainer.addView(title);
+                        mainContainer.addView(recyclerView);
+                        Log.d(TAG, "[MainActivity] Created new genre section: " + genre + " with " + movieObject.size() + " movies");
+                    }
+                }
+            } else {
+                Log.w(TAG, "[MainActivity] Genre sections received null movies map");
             }
         });
     }
