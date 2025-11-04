@@ -48,13 +48,13 @@ public class MainViewModel extends AndroidViewModel {
     // Map to store separate LiveData for each category title
     private final Map<String, MutableLiveData<List<Movie>>> watchedMovieRecListMap = new HashMap<>();
     private final MutableLiveData<List<String>> watchedMovieTitles = new MutableLiveData<>();
+    private final MutableLiveData<Map<String,List<Movie>>> genreMovies = new MutableLiveData<>();
 
 
     private final TmdbApi tmdbApi;
 
     public MainViewModel(@NonNull Application application) {
         super(application);
-
         tmdbApi = TmdbClient.getInstance();
 
 
@@ -64,6 +64,11 @@ public class MainViewModel extends AndroidViewModel {
     public LiveData<List<Movie>> getMovieList() {
         return movieList;
     }
+    public LiveData<Map<String,List<Movie>>> getGenreMovie(){
+        getGenreMovieList();
+        return genreMovies;
+    }
+
 
     private void loadMovies() {
         List<String> titles = loadMovieTitlesFromAssets();
@@ -239,7 +244,7 @@ public class MainViewModel extends AndroidViewModel {
                         completedCount[0]++;
                         int currentFailures = completedCount[0] - successCount[0];
                         Log.d(TAG, "[RecyclerView 2] Progress: " + completedCount[0] + "/" + totalCalls + " calls completed (Success: " + successCount[0] + ", Failed: " + currentFailures + ")");
-                        
+
                         if (completedCount[0] == totalCalls) {
                             // All calls completed, remove duplicates and set all initial movies at once
                             Log.d(TAG, "[RecyclerView 2] All API calls completed. Processing " + finalRecMovies.size() + " movies (removing duplicates)");
@@ -269,7 +274,7 @@ public class MainViewModel extends AndroidViewModel {
                         completedCount[0]++;
                         failureCount[0]++;
                         Log.d(TAG, "[RecyclerView 2] Progress: " + completedCount[0] + "/" + totalCalls + " calls completed (Success: " + successCount[0] + ", Failed: " + failureCount[0] + ")");
-                        
+
                         if (completedCount[0] == totalCalls) {
                             // Even if some failed, post what we have (removing duplicates)
                             if (!finalRecMovies.isEmpty()) {
@@ -440,6 +445,134 @@ public class MainViewModel extends AndroidViewModel {
                             } else {
                                 finalCategoryLiveData.postValue(new ArrayList<>());
                                 Log.v(TAG, "[Category: " + categoryTitle + "] No movies were successfully fetched");
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    public void getGenreMovieList(){
+        Call<Map<String,List<String>>> call = repository.getGenreMovies();
+        Map<String, List<Movie>> currentMap = genreMovies.getValue();
+        if (currentMap == null) {
+            currentMap = new HashMap<>();
+        }
+        final Map<String, List<Movie>> finalCurrentMap = currentMap;
+        call.enqueue(new Callback<Map<String, List<String>>>() {
+            @Override
+            public void onResponse(Call<Map<String, List<String>>> call, Response<Map<String, List<String>>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Map<String,List<String>> genreMovieResponse = response.body();
+                    for (Map.Entry<String, List<String>> entry : genreMovieResponse.entrySet()) {
+                        String genre = entry.getKey();
+                        List<String> movieTitles = entry.getValue();
+                        fetchGenreMoviePosters(genre, movieTitles, finalCurrentMap);
+                    }
+                } else {
+                    Log.e(TAG, "[Genre Movies] Failed to fetch genre movies. Response code: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Map<String, List<String>>> call, Throwable t) {
+                Log.e(TAG, "[Genre Movies] Failed to fetch genre movies: " + t.getMessage(), t);
+            }
+        });
+    }
+
+    private void fetchGenreMoviePosters(String genre, List<String> movieTitles, Map<String, List<Movie>> currentMap) {
+        if (movieTitles == null || movieTitles.isEmpty()) {
+            Log.w(TAG, "[Genre: " + genre + "] No movie titles to fetch");
+            return;
+        }
+
+        List<Call<MovieResponse>> movieTitleCalls = repository.getMoviePosters(Objects.requireNonNull(movieTitles));
+        final int totalCalls = movieTitleCalls.size();
+        final List<Movie> genreMovieList = Collections.synchronizedList(new ArrayList<>());
+        final int[] completedCount = {0};
+
+        Log.d(TAG, "[Genre: " + genre + "] Starting " + totalCalls + " API calls for movie posters");
+
+        for (Call<MovieResponse> moviePosterCall : movieTitleCalls) {
+            moviePosterCall.enqueue(new Callback<MovieResponse>() {
+                @Override
+                public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        try {
+                            MovieResponse body = response.body();
+                            if (body.getResults() != null && !body.getResults().isEmpty()) {
+                                String moviename = body.getResults().get(0).getTitle();
+                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
+                                genreMovieList.add(new Movie(moviename, movieposterpath));
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "[Genre: " + genre + "] Error parsing TMDB response", e);
+                        }
+                    }
+
+                    // Check if all calls are completed
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            // All calls completed, remove duplicates and update the map
+                            List<Movie> uniqueMovies = new ArrayList<>();
+                            for (Movie movie : genreMovieList) {
+                                boolean isDuplicate = false;
+                                for (Movie existing : uniqueMovies) {
+                                    if (existing.getTitle().equals(movie.getTitle())) {
+                                        isDuplicate = true;
+                                        break;
+                                    }
+                                }
+                                if (!isDuplicate) {
+                                    uniqueMovies.add(movie);
+                                }
+                            }
+
+                            // Update the map and post the updated value
+                            synchronized (currentMap) {
+                                currentMap.put(genre, uniqueMovies);
+                                genreMovies.postValue(new HashMap<>(currentMap));
+                            }
+                            Log.d(TAG, "[Genre: " + genre + "] ✅ Added " + uniqueMovies.size() + " unique movies (from " + movieTitles.size() + " titles)");
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<MovieResponse> call, Throwable t) {
+                    Log.e(TAG, "[Genre: " + genre + "] TMDB API Call failed: " + t.getMessage(), t);
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            // Even if some failed, post what we have (avoiding duplicates)
+                            if (!genreMovieList.isEmpty()) {
+                                List<Movie> uniqueMovies = new ArrayList<>();
+                                for (Movie movie : genreMovieList) {
+                                    boolean isDuplicate = false;
+                                    for (Movie existing : uniqueMovies) {
+                                        if (existing.getTitle().equals(movie.getTitle())) {
+                                            isDuplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!isDuplicate) {
+                                        uniqueMovies.add(movie);
+                                    }
+                                }
+
+                                synchronized (currentMap) {
+                                    currentMap.put(genre, uniqueMovies);
+                                    genreMovies.postValue(new HashMap<>(currentMap));
+                                }
+                                Log.d(TAG, "[Genre: " + genre + "] ✅ Added " + uniqueMovies.size() + " unique movies (some API calls failed)");
+                            } else {
+                                synchronized (currentMap) {
+                                    currentMap.put(genre, new ArrayList<>());
+                                    genreMovies.postValue(new HashMap<>(currentMap));
+                                }
+                                Log.w(TAG, "[Genre: " + genre + "] ⚠️ No movies were successfully fetched");
                             }
                         }
                     }
