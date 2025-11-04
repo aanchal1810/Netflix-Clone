@@ -17,9 +17,7 @@
         android:networkSecurityConfig="@xml/network_security_config"
         >
 
-        <activity
-            android:name=".Navbar"
-            android:exported="false"/>
+
         <activity
             android:name=".Search"
             android:exported="false"
