@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout mainContainer;
     private List<String> watchedMoviesTitles;
     private final List<Movie> movieList = new ArrayList<>(), recmovielist = new ArrayList<>(),watchedMovies = new ArrayList<>();
-
+    private String profileId;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,10 +56,10 @@ public class MainActivity extends AppCompatActivity {
         window.requestFeature(Window.FEATURE_CONTENT_TRANSITIONS);
         window.setSharedElementEnterTransition(makeArcMotionTransition());
         window.setSharedElementExitTransition(makeArcMotionTransition());
-
-        setContentView(R.layout.activity_main);
         EdgeToEdge.enable(this);
-        
+        setContentView(R.layout.activity_main);
+
+
         // Initialize mainContainer AFTER setContentView
         mainContainer = findViewById(R.id.mainContainer);
 
@@ -73,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
                 "Stitches",
                 "1982"
         );
+        // get intent extras
+        profileId = getIntent().getStringExtra("PROFILE_ID");
 
         // basic recycler setup (adapter but don't fill data yet)
         recyclerView = findViewById(R.id.recyclerView);
@@ -88,11 +90,9 @@ public class MainActivity extends AppCompatActivity {
         );
         adapterrec = new MoviesAdapter(this, recmovielist);
         recyclerViewRec.setAdapter(adapterrec);
-
         for (String watchedMoviesTitle : watchedMoviesTitles){
             addCategorySection(watchedMoviesTitle);
         }
-
         // get intent extras
         boolean shouldAnimate = getIntent().getBooleanExtra("RUN_AVATAR_ANIMATION", false);
         String avatarUrl = getIntent().getStringExtra("PROFILE_AVATAR_URL");
@@ -151,6 +151,13 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, Search.class));
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         });
+        profileIcon.setOnClickListener(v -> {
+            Intent goToAccount = new Intent(this, ProfilePageActivity.class);
+            goToAccount.putExtra("PROFILE_AVATAR_URL1", avatarUrl);
+            goToAccount.putExtra("PROFILE_BG_RES_ID1", bgResId);
+            startActivity(goToAccount);
+        });
+
 
         // Prevent re-run flag
         getIntent().removeExtra("RUN_AVATAR_ANIMATION");

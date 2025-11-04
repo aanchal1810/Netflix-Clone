@@ -19,6 +19,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -65,7 +66,7 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
         window.requestFeature(Window.FEATURE_CONTENT_TRANSITIONS);
         window.setSharedElementEnterTransition(makeArcMotionTransition());
         window.setSharedElementExitTransition(makeArcMotionTransition());
-
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_profile_selection);
 
         viewModel = new ViewModelProvider(this).get(ProfileSelectionViewModel.class);
