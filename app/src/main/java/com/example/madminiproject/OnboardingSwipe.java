@@ -104,9 +104,7 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
             startActivity(new Intent(OnboardingSwipe.this, ProfileSelectionActivity.class));
             finish();
         });
-
     }
-
     @Override
     public void onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -115,7 +113,6 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
             super.onBackPressed();
         }
     }
-
     @Override
     public void onCardDragging(Direction direction, float ratio) {
         Log.d("CardStackView", "onCardDragging: d = " + direction.name() + ", r = " + ratio);

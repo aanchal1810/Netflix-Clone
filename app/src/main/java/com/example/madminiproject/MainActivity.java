@@ -34,10 +34,10 @@ import com.bumptech.glide.request.RequestOptions;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    private RecyclerView recyclerView;
-    private MoviesAdapter adapter;
+    private RecyclerView recyclerView,recyclerViewRec;
+    private MoviesAdapter adapter,adapterrec;
     private MainViewModel mainViewModel;
-    private final List<Movie> movieList = new ArrayList<>();
+    private final List<Movie> movieList = new ArrayList<>(), recmovielist = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +66,13 @@ public class MainActivity extends AppCompatActivity {
         );
         adapter = new MoviesAdapter(this, movieList);
         recyclerView.setAdapter(adapter);
+
+        recyclerViewRec = findViewById(R.id.recyclerViewRec);
+        recyclerViewRec.setLayoutManager(
+                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        );
+        adapterrec = new MoviesAdapter(this, recmovielist);
+        recyclerViewRec.setAdapter(adapterrec);
 
         // get intent extras
         boolean shouldAnimate = getIntent().getBooleanExtra("RUN_AVATAR_ANIMATION", false);
@@ -114,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
 
         // initialize data (ViewModel) - safe to do while transition plays
         initRecyclerAndData();
+        initMovieRecRecycler();
 
         // Search nav (no shared element) - keep simple fade
         ImageView searchIcon = navbar.findViewById(R.id.search);
@@ -142,11 +150,33 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initRecyclerAndData() {
+        Log.d(TAG, "[MainActivity] Setting up RecyclerView 1 observer");
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         mainViewModel.getMovieList().observe(this, movies -> {
-            movieList.clear();
-            movieList.addAll(movies);
-            adapter.notifyDataSetChanged();
+            if (movies != null) {
+                Log.d(TAG, "[MainActivity] RecyclerView 1 received " + movies.size() + " movies from ViewModel");
+                movieList.clear();
+                movieList.addAll(movies);
+                adapter.notifyDataSetChanged();
+                Log.d(TAG, "[MainActivity] RecyclerView 1 adapter notified. Current list size: " + movieList.size());
+            } else {
+                Log.w(TAG, "[MainActivity] RecyclerView 1 received null movies list");
+            }
+        });
+    }
+    private void initMovieRecRecycler() {
+        Log.d(TAG, "[MainActivity] Setting up RecyclerView 2 observer");
+        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        mainViewModel.getRecMovieList().observe(this, movies -> {
+            if (movies != null) {
+                Log.d(TAG, "[MainActivity] RecyclerView 2 received " + movies.size() + " movies from ViewModel");
+                recmovielist.clear();
+                recmovielist.addAll(movies);
+                adapterrec.notifyDataSetChanged();
+                Log.d(TAG, "[MainActivity] RecyclerView 2 adapter notified. Current list size: " + recmovielist.size());
+            } else {
+                Log.w(TAG, "[MainActivity] RecyclerView 2 received null movies list");
+            }
         });
     }
 }
