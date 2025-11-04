@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.transition.ArcMotion;
 import android.transition.ChangeBounds;
 import android.transition.Transition;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.animation.AccelerateDecelerateInterpolator;
@@ -16,7 +17,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -45,25 +45,27 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
     private ImageView dialogAvatarImage;
     private Uri selectedImageUri;
 
-    private final ActivityResultLauncher<CropImageContractOptions> cropImage = registerForActivityResult(new CropImageContract(), result -> {
-        if (result.isSuccessful()) {
-            selectedImageUri = result.getUriContent();
-            dialogAvatarImage.setImageURI(selectedImageUri);
-        } else {
-            Exception error = result.getError();
-            if (error != null) {
-                Toast.makeText(this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+    private final ActivityResultLauncher<CropImageContractOptions> cropImage = registerForActivityResult(
+            new CropImageContract(),
+            result -> {
+                if (result.isSuccessful()) {
+                    selectedImageUri = result.getUriContent();
+                    dialogAvatarImage.setImageURI(selectedImageUri);
+                } else if (result.getError() != null) {
+                    Toast.makeText(this, "Error: " + result.getError().getMessage(), Toast.LENGTH_SHORT).show();
+                }
             }
-        }
-    });
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         Window window = getWindow();
         window.requestFeature(Window.FEATURE_CONTENT_TRANSITIONS);
-        window.setSharedElementEnterTransition(makePathMotion());
-        window.setSharedElementExitTransition(makePathMotion());
+        window.setSharedElementEnterTransition(makeArcMotionTransition());
+        window.setSharedElementExitTransition(makeArcMotionTransition());
+
         setContentView(R.layout.activity_profile_selection);
 
         viewModel = new ViewModelProvider(this).get(ProfileSelectionViewModel.class);
@@ -72,21 +74,14 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
         recyclerView.setLayoutManager(new GridLayoutManager(this, 3));
         adapter = new ProfileAdapter(new ArrayList<>(), this);
         recyclerView.setAdapter(adapter);
+
         loadingSpinner = findViewById(R.id.loading_spinner);
 
         Animation fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in);
-
         viewModel.getProfiles().observe(this, profiles -> {
             adapter.setProfiles(profiles);
             recyclerView.startAnimation(fadeIn);
             loadingSpinner.setVisibility(View.GONE);
-        });
-
-        viewModel.getNavigateToMain().observe(this, navigate -> {
-            if (navigate) {
-                startActivity(new Intent(ProfileSelectionActivity.this, ProfileTransitionActivity.class));
-                finish();
-            }
         });
 
         viewModel.getErrorMessage().observe(this, errorMessage -> {
@@ -94,11 +89,7 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
         });
 
-        viewModel.isProfileLimitReached().observe(this, limitReached -> {
-            adapter.setProfileLimitReached(limitReached);
-            adapter.setProfileLimitReached(limitReached);
-        });
-
+        viewModel.isProfileLimitReached().observe(this, adapter::setProfileLimitReached);
 
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             loadingSpinner.setVisibility(View.VISIBLE);
@@ -111,17 +102,35 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
 
     @Override
     public void onProfileSelected(Profile profile, View sharedView) {
+        int[] profileBackgrounds = {
+                R.drawable.profile_red,
+                R.drawable.profile_blue,
+                R.drawable.profile_green,
+                R.drawable.profile_pink,
+                R.drawable.profile_purple
+        };
+
+        int colorIndex = Math.max(0, Math.min(profile.getColorIndex(), profileBackgrounds.length - 1));
+        int bgResId = profileBackgrounds[colorIndex];
+        boolean isImageAvatar = profile.getAvatarUrl() != null && !profile.getAvatarUrl().isEmpty();
 
         viewModel.onProfileSelected(profile);
+
         Intent intent = new Intent(this, ProfileTransitionActivity.class);
         intent.putExtra("PROFILE_AVATAR_URL", profile.getAvatarUrl());
+        intent.putExtra("IS_IMAGE_AVATAR", isImageAvatar);
+        intent.putExtra("PROFILE_BG_RES_ID", bgResId);
         intent.putExtra("TRANSITION_NAME", sharedView.getTransitionName());
+
+        Log.d("ProfileSelectionDebug", "Starting transition with bgResId=" + bgResId);
 
         ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(
                 this, sharedView, sharedView.getTransitionName()
         );
         startActivity(intent, options.toBundle());
+        finishAfterTransition();
     }
+
     @Override
     public void onAddProfileClicked() {
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
@@ -131,11 +140,11 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
         }
     }
 
-
     private void showAddProfileDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AlertDialogCustom);
-        final View customLayout = getLayoutInflater().inflate(R.layout.dialog_add_profile, null);
+        View customLayout = getLayoutInflater().inflate(R.layout.dialog_add_profile, null);
         builder.setView(customLayout);
+
         AlertDialog dialog = builder.create();
 
         dialogAvatarImage = customLayout.findViewById(R.id.dialog_avatar_image);
@@ -144,11 +153,10 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
         Button saveButton = customLayout.findViewById(R.id.dialog_save_button);
 
         dialogAvatarImage.setOnClickListener(v -> openImagePicker());
-
         cancelButton.setOnClickListener(v -> dialog.dismiss());
 
         saveButton.setOnClickListener(v -> {
-            profileName = editText.getText().toString();
+            profileName = editText.getText().toString().trim();
             if (!profileName.isEmpty()) {
                 loadingSpinner.setVisibility(View.VISIBLE);
                 viewModel.addProfile(profileName, selectedImageUri);
@@ -162,34 +170,29 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
     }
 
     private void openImagePicker() {
-        // Create CropImageOptions with RECTANGLE crop shape and guidelines ON
         CropImageOptions cropOptions = new CropImageOptions(
-                true,  // include gallery
-                true,  // include camera
-                CropImageView.CropShape.RECTANGLE, // crop shape
-                CropImageView.CropCornerShape.RECTANGLE, // default
-                0, 0, 0, // corner radius, snap radius, touch radius (use default)
-                CropImageView.Guidelines.ON, // guidelines
-                CropImageView.ScaleType.FIT_CENTER // scale type
-                // remaining parameters will take default values
+                true,
+                true,
+                CropImageView.CropShape.OVAL,
+                CropImageView.CropCornerShape.RECTANGLE,
+                0, 0, 0,
+                CropImageView.Guidelines.ON,
+                CropImageView.ScaleType.FIT_CENTER
         );
 
-        CropImageContractOptions options =
-                new CropImageContractOptions(null, cropOptions);
-
+        CropImageContractOptions options = new CropImageContractOptions(null, cropOptions);
         cropImage.launch(options);
     }
 
-    private Transition makePathMotion() {
+    private Transition makeArcMotionTransition() {
         ArcMotion arcMotion = new ArcMotion();
-        arcMotion.setMinimumHorizontalAngle(50f);
-        arcMotion.setMinimumVerticalAngle(50f);
+        arcMotion.setMinimumHorizontalAngle(60f);
+        arcMotion.setMinimumVerticalAngle(60f);
 
         ChangeBounds changeBounds = new ChangeBounds();
         changeBounds.setPathMotion(arcMotion);
-        changeBounds.setDuration(800);
+        changeBounds.setDuration(700);
         changeBounds.setInterpolator(new AccelerateDecelerateInterpolator());
-
         return changeBounds;
     }
 }
