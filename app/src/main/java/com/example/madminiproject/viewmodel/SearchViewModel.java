@@ -11,8 +11,12 @@ import androidx.lifecycle.MutableLiveData;
 import com.example.madminiproject.BuildConfig;
 import com.example.madminiproject.Movie;
 import com.example.madminiproject.MovieResponse;
+import com.example.madminiproject.Profile;
 import com.example.madminiproject.TmdbApi;
 import com.example.madminiproject.TmdbClient;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +33,10 @@ public class SearchViewModel extends AndroidViewModel {
     private final TmdbApi tmdbApi;
     private final ExecutorService executorService;
 
+    private final MutableLiveData<Profile> currentProfile = new MutableLiveData<>();
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private DocumentReference profileRef;
+
     public SearchViewModel(@NonNull Application application) {
         super(application);
         tmdbApi = TmdbClient.getInstance();
@@ -37,6 +45,22 @@ public class SearchViewModel extends AndroidViewModel {
 
     public LiveData<List<Movie>> getSearchResults() {
         return searchResults;
+    }
+
+    public void loadProfile(String profileId) {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        profileRef = db.collection("users").document(userId).collection("profiles").document(profileId);
+        profileRef.addSnapshotListener((snapshot, e) -> {
+            if (e != null) {
+                // Handle error
+                return;
+            }
+            if (snapshot != null && snapshot.exists()) {
+                Profile profile = snapshot.toObject(Profile.class);
+                currentProfile.setValue(profile);
+                updateWatchlistStatus();
+            }
+        });
     }
 
     public void searchMovies(String query) {
@@ -54,7 +78,12 @@ public class SearchViewModel extends AndroidViewModel {
                 public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
                     if (response.isSuccessful() && response.body() != null) {
                         List<Movie> results = response.body().getResults();
-                        searchResults.postValue(results != null ? results : new ArrayList<>());
+                        if (results != null) {
+                            searchResults.postValue(results);
+                            updateWatchlistStatus(results);
+                        } else {
+                            searchResults.postValue(new ArrayList<>());
+                        }
                     } else {
                         Log.e(TAG, "API response failed: " + response.message());
                         searchResults.postValue(new ArrayList<>());
@@ -69,6 +98,41 @@ public class SearchViewModel extends AndroidViewModel {
             });
         });
     }
+
+    private void updateWatchlistStatus() {
+        List<Movie> movies = searchResults.getValue();
+        if (movies != null && !movies.isEmpty()) {
+            updateWatchlistStatus(movies);
+        }
+    }
+
+    private void updateWatchlistStatus(List<Movie> movies) {
+        Profile profile = currentProfile.getValue();
+        if (profile != null) {
+            List<String> watchList = profile.getWatchListAsList();
+            for (Movie movie : movies) {
+                movie.setWatchlisted(watchList.contains(movie.getTitle()));
+            }
+            searchResults.postValue(new ArrayList<>(movies)); // postValue to ensure UI updates
+        }
+    }
+
+    public void toggleWatchList(String movieTitle) {
+        Profile profile = currentProfile.getValue();
+        if (profile != null && profileRef != null) {
+            List<String> watchList = profile.getWatchListAsList();
+            if (watchList.contains(movieTitle)) {
+                watchList.remove(movieTitle);
+            } else {
+                watchList.add(movieTitle);
+            }
+            profileRef.update("watchList", watchList);
+        }
+    }
+    public LiveData<Profile> getCurrentProfile() {
+        return currentProfile;
+    }
+
 
     @Override
     protected void onCleared() {

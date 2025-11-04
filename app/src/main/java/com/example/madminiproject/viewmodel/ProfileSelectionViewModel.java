@@ -25,6 +25,7 @@ public class ProfileSelectionViewModel extends ViewModel {
     private final MutableLiveData<Boolean> navigateToMain = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> profileLimitReached = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> profileAddedForOnboarding = new MutableLiveData<>(false);
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
@@ -44,6 +45,14 @@ public class ProfileSelectionViewModel extends ViewModel {
 
     public LiveData<Boolean> isProfileLimitReached() {
         return profileLimitReached;
+    }
+
+    public LiveData<Boolean> getProfileAddedForOnboarding() {
+        return profileAddedForOnboarding;
+    }
+
+    public void onOnboardingNavigated() {
+        profileAddedForOnboarding.setValue(false);
     }
 
     public void fetchProfiles() {
@@ -114,7 +123,10 @@ public class ProfileSelectionViewModel extends ViewModel {
 
         Profile newProfile = new Profile(profileName, avatarUrl, colorIndex);
         db.collection("users").document(userId).collection("profiles").add(newProfile)
-                .addOnSuccessListener(documentReference -> fetchProfiles())
+                .addOnSuccessListener(documentReference -> {
+                    fetchProfiles();
+                    profileAddedForOnboarding.setValue(true);
+                })
                 .addOnFailureListener(e -> {
                     errorMessage.setValue("Failed to add profile: " + e.getMessage());
                 });

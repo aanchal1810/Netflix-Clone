@@ -20,6 +20,7 @@ public class Movie implements Serializable {
     private String overview; // optional
 
     private boolean isFavorite = false;
+    private boolean isWatchlisted = false;
 
     public Movie(String title, String posterPath, String backdropPath, String overview) {
         this.title = title;
@@ -69,5 +70,13 @@ public class Movie implements Serializable {
 
     public void setFavorite(boolean favorite) {
         isFavorite = favorite;
+    }
+
+    public boolean isWatchlisted() {
+        return isWatchlisted;
+    }
+
+    public void setWatchlisted(boolean watchlisted) {
+        isWatchlisted = watchlisted;
     }
 }
