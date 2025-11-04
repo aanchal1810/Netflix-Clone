@@ -26,6 +26,7 @@ public class OnboardingViewModel extends ViewModel {
     private final MutableLiveData<List<Movie>> movies = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<List<String>> movietitles = new MutableLiveData<>();
     private final MainRepository repository = new MainRepository();
+    private boolean isFetchingRecommended = false;
 
     public OnboardingViewModel() {
         fetchInitialMovies();
@@ -44,6 +45,13 @@ public class OnboardingViewModel extends ViewModel {
      * makes a TMDB API call to fetch its poster and details.
      */
     public void fetchRecommendedMovies(String moviename){
+        // Prevent concurrent fetches
+        if (isFetchingRecommended) {
+            Log.v(TAG, "Already fetching recommended movies, ignoring duplicate request");
+            return;
+        }
+        
+        isFetchingRecommended = true;
         MovieRequest movieRequest = new MovieRequest(moviename);
         Call<List<String>> call = repository.getRecommendedMovie(movieRequest);
         call.enqueue(new Callback<List<String>>() {
@@ -63,6 +71,7 @@ public class OnboardingViewModel extends ViewModel {
                 } else {
                     movietitles.postValue(null);
                     Log.e(TAG, "Failed to fetch recommended movie titles. Code: " + response.code());
+                    isFetchingRecommended = false; // Reset flag on failure
                     if (response.errorBody() != null) {
                         try {
                             Log.e(TAG, "Error body: " + response.errorBody().string());
@@ -76,6 +85,7 @@ public class OnboardingViewModel extends ViewModel {
             public void onFailure(Call<List<String>> call, Throwable t) {
                 movietitles.postValue(null);
                 Log.e(TAG, "Failed to fetch recommended movies: " + t.getMessage(), t);
+                isFetchingRecommended = false; // Reset flag on failure
             }
         });
     }
@@ -122,8 +132,23 @@ public class OnboardingViewModel extends ViewModel {
                             List<Movie> currentList = movies.getValue();
                             if (currentList == null) currentList = new ArrayList<>();
                             
-                            // Filter out duplicates by movie title
-                            for (Movie newMovie : recommendedMovies) {
+                            // First, remove duplicates within recommendedMovies itself
+                            List<Movie> uniqueRecommendedMovies = new ArrayList<>();
+                            for (Movie movie : recommendedMovies) {
+                                boolean isDuplicate = false;
+                                for (Movie existing : uniqueRecommendedMovies) {
+                                    if (existing.getTitle().equals(movie.getTitle())) {
+                                        isDuplicate = true;
+                                        break;
+                                    }
+                                }
+                                if (!isDuplicate) {
+                                    uniqueRecommendedMovies.add(movie);
+                                }
+                            }
+                            
+                            // Then, filter out duplicates against current list
+                            for (Movie newMovie : uniqueRecommendedMovies) {
                                 boolean isDuplicate = false;
                                 for (Movie existingMovie : currentList) {
                                     if (existingMovie.getTitle().equals(newMovie.getTitle())) {
@@ -136,8 +161,10 @@ public class OnboardingViewModel extends ViewModel {
                                 }
                             }
                             
+                            int previousSize = movies.getValue() != null ? movies.getValue().size() : 0;
                             movies.postValue(currentList);
-                            Log.v(TAG, "Added recommended movies (duplicates filtered) to the list");
+                            Log.v(TAG, "Added " + (currentList.size() - previousSize) + " recommended movies (duplicates filtered)");
+                            isFetchingRecommended = false; // Reset flag after completion
                         }
                     }
                 }
@@ -153,8 +180,23 @@ public class OnboardingViewModel extends ViewModel {
                                 List<Movie> currentList = movies.getValue();
                                 if (currentList == null) currentList = new ArrayList<>();
                                 
-                                // Filter out duplicates by movie title
-                                for (Movie newMovie : recommendedMovies) {
+                                // First, remove duplicates within recommendedMovies itself
+                                List<Movie> uniqueRecommendedMovies = new ArrayList<>();
+                                for (Movie movie : recommendedMovies) {
+                                    boolean isDuplicate = false;
+                                    for (Movie existing : uniqueRecommendedMovies) {
+                                        if (existing.getTitle().equals(movie.getTitle())) {
+                                            isDuplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!isDuplicate) {
+                                        uniqueRecommendedMovies.add(movie);
+                                    }
+                                }
+                                
+                                // Then, filter out duplicates against current list
+                                for (Movie newMovie : uniqueRecommendedMovies) {
                                     boolean isDuplicate = false;
                                     for (Movie existingMovie : currentList) {
                                         if (existingMovie.getTitle().equals(newMovie.getTitle())) {
@@ -170,6 +212,7 @@ public class OnboardingViewModel extends ViewModel {
                                 movies.postValue(currentList);
                                 Log.v(TAG, "Added recommended movies (some may have failed, duplicates filtered)");
                             }
+                            isFetchingRecommended = false; // Reset flag after completion
                         }
                     }
                 }
@@ -179,8 +222,8 @@ public class OnboardingViewModel extends ViewModel {
     private void fetchInitialMovies() {
         Log.v(TAG, "Fetching initial movies...");
         
-        // Clear the movies list first to prevent duplicates
-        movies.postValue(new ArrayList<>());
+        // Don't clear the list here - let it be set directly when initial movies arrive
+        // This prevents unnecessary observer triggers that could cause loops
 
         Call<List<String>> call = repository.getInitialMovie();
 
