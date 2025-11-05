@@ -63,11 +63,19 @@ public class ProfileSelectionViewModel extends ViewModel {
 
     private void handleFetchSuccess(QuerySnapshot queryDocumentSnapshots) {
         if (queryDocumentSnapshots != null) {
-            List<Profile> profileList = queryDocumentSnapshots.toObjects(Profile.class);
+            List<Profile> profileList = new ArrayList<>();
+            queryDocumentSnapshots.getDocuments().forEach(snapshot -> {
+                Profile profile = snapshot.toObject(Profile.class);
+                if (profile != null) {
+                    profile.setProfileId(snapshot.getId()); // 🔥 THIS FIXES NULL IDs
+                    profileList.add(profile);
+                }
+            });
             profiles.setValue(profileList);
             profileLimitReached.setValue(profileList.size() >= MAX_PROFILES);
         }
     }
+
 
     public void onProfileSelected(Profile profile) {
         // Here you would save the selected profile to SharedPreferences
@@ -112,9 +120,18 @@ public class ProfileSelectionViewModel extends ViewModel {
 
         int colorIndex = getNextAvailableColor(currentProfiles);
 
-        Profile newProfile = new Profile(profileName, avatarUrl, colorIndex);
-        db.collection("users").document(userId).collection("profiles").add(newProfile)
-                .addOnSuccessListener(documentReference -> fetchProfiles())
+        // Create a new document with a generated ID
+        String docId = db.collection("users").document(userId)
+                .collection("profiles").document().getId();
+
+        Profile newProfile = new Profile(docId, profileName, avatarUrl, colorIndex);
+
+        // Save using that specific ID
+        db.collection("users").document(userId)
+                .collection("profiles")
+                .document(docId)
+                .set(newProfile)
+                .addOnSuccessListener(aVoid -> fetchProfiles())
                 .addOnFailureListener(e -> {
                     errorMessage.setValue("Failed to add profile: " + e.getMessage());
                 });

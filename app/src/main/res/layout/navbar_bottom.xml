@@ -27,7 +27,7 @@
             android:layout_weight="1" />
 
         <ImageView
-            android:id="@+id/imageView9"
+            android:id="@+id/homeIcon"
             android:layout_width="0dp"
             android:layout_height="40dp"
             android:layout_marginTop="10dp"
@@ -70,6 +70,11 @@
             android:layout_height="match_parent"
             android:layout_marginTop="10dp"
             android:layout_marginBottom="10dp"
+            android:layout_weight="1" />
+
+        <Space
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_weight="1" />
 
         <Space
