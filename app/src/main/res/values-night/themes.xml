@@ -3,5 +3,8 @@
     <style name="Base.Theme.MADMiniProject" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
         <item name="colorPrimary">@color/netflix_red</item>
+        <item name="fontFamily">@font/montserrat</item>
+        <item name="android:fontFamily">@font/montserrat</item>
+
     </style>
 </resources>
