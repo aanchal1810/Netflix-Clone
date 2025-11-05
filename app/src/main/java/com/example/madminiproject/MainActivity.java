@@ -8,6 +8,7 @@ import android.transition.ChangeBounds;
 import android.transition.Transition;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
@@ -28,12 +29,26 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.example.madminiproject.viewmodel.MainViewModel;
+import com.example.madminiproject.viewmodel.MainRepository;
+import com.example.madminiproject.Profile;
+import com.google.firebase.auth.FirebaseAuth;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import com.example.madminiproject.MovieResponse;
+import java.util.Collections;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.jetbrains.annotations.Nullable;
 import com.bumptech.glide.load.engine.GlideException;
@@ -51,8 +66,28 @@ public class MainActivity extends AppCompatActivity {
     private final Map<String, RecyclerView> genreRecyclerViewMap = new HashMap<>();
     private final Map<String, MoviesAdapter> genreAdapterMap = new HashMap<>();
     private final Map<String, List<Movie>> genreMovieListMap = new HashMap<>();
+    
+    // Maps for watchHistory, watchList, and favorites sections
+    private RecyclerView watchHistoryRecyclerView;
+    private MoviesAdapter watchHistoryAdapter;
+    private List<Movie> watchHistoryMovieList;
+    
+    private RecyclerView watchListRecyclerView;
+    private MoviesAdapter watchListAdapter;
+    private List<Movie> watchListMovieList;
+    
+    private RecyclerView favoritesRecyclerView;
+    private MoviesAdapter favoritesAdapter;
+    private List<Movie> favoritesMovieList;
 
     private String profileId;
+    private FirebaseFirestore db;
+    private DocumentReference profileRef;
+    private ListenerRegistration profileListener;
+    private boolean genreSectionAdded = false;
+    private boolean recommendedSectionRepositioned = false;
+    private MainRepository repository;
+    private ExecutorService executorService;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,13 +117,22 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout navbarBottom = findViewById(R.id.bottomNav);
         ImageView profileIcon = navbarBottom.findViewById(R.id.navbar_profile_icon);
         View navbar = findViewById(R.id.navbar);
-        watchedMoviesTitles = Arrays.asList(
-                "Avatar",
-                "Stitches",
-                "1982"
-        );
+        
+        // Initialize watchedMoviesTitles as empty list - will be populated from Firebase
+        watchedMoviesTitles = new ArrayList<>();
+        
         // get intent extras
         profileId = getIntent().getStringExtra("PROFILE_ID");
+        
+        // Initialize Firebase
+        db = FirebaseFirestore.getInstance();
+        repository = new MainRepository();
+        
+        // Initialize ExecutorService for parallel section loading
+        // Using a thread pool with 8 threads for parallel execution
+        executorService = Executors.newFixedThreadPool(8);
+        
+        loadProfileAndWatchHistory();
 
 
         // get data from naitik
@@ -106,10 +150,7 @@ public class MainActivity extends AppCompatActivity {
         adapterrec = new MoviesAdapter(this, recmovielist,profileId);
         recyclerViewRec.setAdapter(adapterrec);
 
-        for (String watchedMoviesTitle : watchedMoviesTitles){
-            addCategorySection(watchedMoviesTitle);
-        }
-        addGenreSection();
+        // Genre section will be added after category sections are loaded from Firebase
 
         // get intent extras
         boolean shouldAnimate = getIntent().getBooleanExtra("RUN_AVATAR_ANIMATION", false);
@@ -156,9 +197,23 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // initialize data (ViewModel) - safe to do while transition plays
+        // Initialize data sections - observers must be set up on main thread
         initRecyclerAndData();
         initMovieRecRecycler();
+        
+        // Always show Recommended For You and Genres sections (don't wait for Firebase)
+        // Initialize Recommended For You - it will be repositioned after Watch History loads
+        addRecommendedForYouSection();
+        
+        // Always show Genre sections
+        if (!genreSectionAdded) {
+            executorService.execute(() -> {
+                runOnUiThread(() -> {
+                    addGenreSection();
+                    genreSectionAdded = true;
+                });
+            });
+        }
 
         // Search nav (no shared element) - keep simple fade
         ImageView searchIcon = navbar.findViewById(R.id.search);
@@ -327,5 +382,515 @@ public class MainActivity extends AppCompatActivity {
                 Log.w(TAG, "[MainActivity] RecyclerView 2 received null movies list");
             }
         });
+    }
+
+    private void loadProfileAndWatchHistory() {
+        if (profileId == null || profileId.isEmpty()) {
+            Log.w(TAG, "[MainActivity] profileId is null or empty, cannot load watch history");
+            return;
+        }
+
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        if (userId == null) {
+            Log.w(TAG, "[MainActivity] User not authenticated, cannot load watch history");
+            return;
+        }
+
+        profileRef = db.collection("users").document(userId).collection("profiles").document(profileId);
+        profileListener = profileRef.addSnapshotListener((snapshot, e) -> {
+            if (e != null) {
+                Log.e(TAG, "[MainActivity] Error loading profile: " + e.getMessage());
+                return;
+            }
+
+            if (snapshot != null && snapshot.exists()) {
+                Profile profile = snapshot.toObject(Profile.class);
+                if (profile != null) {
+                    // Extract all lists from profile
+                    List<String> watchHistoryTitles = profile.getWatchHistoryAsList();
+                    List<String> watchListTitles = profile.getWatchListAsList();
+                    List<String> favoritesTitles = profile.getFavoritesAsList();
+                    
+                    Log.d(TAG, "[MainActivity] Loaded - Watch History: " + watchHistoryTitles.size() + 
+                          ", My List: " + watchListTitles.size() + 
+                          ", Favorites: " + favoritesTitles.size() + " movies");
+                    
+                    // Update watchedMoviesTitles for "Because You Watched" sections
+                    List<String> previousWatchedMovies = new ArrayList<>(watchedMoviesTitles);
+                    watchedMoviesTitles.clear();
+                    watchedMoviesTitles.addAll(watchHistoryTitles);
+                    
+                    // Update sections reactively - they appear immediately when data changes
+                    // 1. Watch History - always update/create if there's data
+                    if (!watchHistoryTitles.isEmpty()) {
+                        executorService.execute(() -> {
+                            runOnUiThread(() -> addWatchHistorySection(watchHistoryTitles));
+                        });
+                    } else {
+                        // Hide section if empty
+                        runOnUiThread(() -> removeSectionIfExists("Watch History"));
+                    }
+                    
+                    // 2. Recommended For You (reposition after Watch History if it was just added)
+                    executorService.execute(() -> {
+                        runOnUiThread(() -> {
+                            if (watchHistoryRecyclerView != null) {
+                                repositionRecommendedForYouAfterWatchHistory();
+                            }
+                        });
+                    });
+                    
+                    // 3. My List - create/update immediately when data exists
+                    if (!watchListTitles.isEmpty()) {
+                        executorService.execute(() -> {
+                            runOnUiThread(() -> addWatchListSection(watchListTitles));
+                        });
+                    } else {
+                        // Hide section if empty
+                        runOnUiThread(() -> removeSectionIfExists("My List"));
+                    }
+                    
+                    // 4. Favorites - create/update immediately when data exists
+                    if (!favoritesTitles.isEmpty()) {
+                        executorService.execute(() -> {
+                            runOnUiThread(() -> addFavoritesSection(favoritesTitles));
+                        });
+                    } else {
+                        // Hide section if empty
+                        runOnUiThread(() -> removeSectionIfExists("Favorites"));
+                    }
+                    
+                    // 5. Because You Watched sections - create immediately for new watched movies
+                    // Find newly watched movies
+                    Set<String> previousWatchedSet = new HashSet<>(previousWatchedMovies);
+                    for (String watchedMovieTitle : watchedMoviesTitles) {
+                        final String movieTitle = watchedMovieTitle;
+                        // Only create section if it's a new movie or doesn't exist yet
+                        if (!previousWatchedSet.contains(movieTitle)) {
+                            executorService.execute(() -> {
+                                runOnUiThread(() -> {
+                                    // Check if section already exists to avoid duplicates
+                                    boolean sectionExists = false;
+                                    for (int i = 0; i < mainContainer.getChildCount(); i++) {
+                                        View child = mainContainer.getChildAt(i);
+                                        if (child instanceof TextView) {
+                                            TextView titleView = (TextView) child;
+                                            if (titleView.getText().toString().contains("Because You Watched " + movieTitle)) {
+                                                sectionExists = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (!sectionExists) {
+                                        addCategorySection(movieTitle);
+                                    }
+                                });
+                            });
+                        }
+                    }
+                    
+                    // Remove "Because You Watched" sections for movies that are no longer in watch history
+                    for (String previousMovie : previousWatchedMovies) {
+                        if (!watchedMoviesTitles.contains(previousMovie)) {
+                            final String movieToRemove = previousMovie;
+                            runOnUiThread(() -> removeCategorySection("Because You Watched " + movieToRemove));
+                        }
+                    }
+                    
+                    // Genre sections are already added in onCreate, no need to add again
+                } else {
+                    Log.w(TAG, "[MainActivity] Profile object is null");
+                }
+            } else {
+                Log.w(TAG, "[MainActivity] Profile snapshot does not exist - showing default sections");
+            }
+        });
+    }
+    
+    private void addWatchHistorySection(List<String> movieTitles) {
+        if (watchHistoryRecyclerView != null) {
+            // Section already exists, just update the movies immediately
+            executorService.execute(() -> {
+                fetchMoviesForSection(movieTitles, watchHistoryMovieList, watchHistoryAdapter, "Watch History");
+            });
+            return;
+        }
+        
+        // Create the title TextView
+        TextView title = new TextView(this);
+        title.setText("Watch History");
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), Typeface.BOLD);
+        title.setPadding(16, 24, 0, 8);
+
+        // Create the RecyclerView
+        watchHistoryRecyclerView = new RecyclerView(this);
+        watchHistoryRecyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        watchHistoryRecyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        watchHistoryRecyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        watchHistoryRecyclerView.setClipToPadding(false);
+
+        // Create list and adapter
+        watchHistoryMovieList = new ArrayList<>();
+        watchHistoryAdapter = new MoviesAdapter(this, watchHistoryMovieList, profileId);
+        watchHistoryRecyclerView.setAdapter(watchHistoryAdapter);
+
+        // Add to main container first (UI work)
+        mainContainer.addView(title);
+        mainContainer.addView(watchHistoryRecyclerView);
+        Log.d(TAG, "[MainActivity] Created Watch History section with " + movieTitles.size() + " movies");
+        
+        // Fetch movies on background thread
+        executorService.execute(() -> {
+            fetchMoviesForSection(movieTitles, watchHistoryMovieList, watchHistoryAdapter, "Watch History");
+        });
+    }
+    
+    private void addRecommendedForYouSection() {
+        // Find the existing TextView and RecyclerView from XML
+        TextView recommendedTitle = findViewById(R.id.recommendedForYou);
+        RecyclerView recommendedRecyclerView = findViewById(R.id.recyclerViewRec);
+        
+        if (recommendedTitle == null || recommendedRecyclerView == null) {
+            Log.w(TAG, "[MainActivity] Recommended For You views not found in XML");
+            return;
+        }
+        
+        // Check if they're already in mainContainer
+        ViewGroup parent = (ViewGroup) recommendedTitle.getParent();
+        if (parent != null && parent.equals(mainContainer)) {
+            // Already positioned, no need to do anything
+            Log.d(TAG, "[MainActivity] Recommended For You section already in mainContainer");
+            return;
+        }
+        
+        // Remove them from their current parent if they have one
+        if (parent != null) {
+            parent.removeView(recommendedTitle);
+            parent.removeView(recommendedRecyclerView);
+        }
+        
+        // If Watch History doesn't exist yet, add at the beginning
+        // Otherwise, it will be repositioned when Watch History loads
+        int insertIndex = 0;
+        
+        // Add the views at the beginning (will be repositioned later if Watch History exists)
+        mainContainer.addView(recommendedTitle, insertIndex);
+        mainContainer.addView(recommendedRecyclerView, insertIndex + 1);
+        
+        Log.d(TAG, "[MainActivity] Added Recommended For You section at index " + insertIndex);
+    }
+    
+    private void repositionRecommendedForYouAfterWatchHistory() {
+        if (recommendedSectionRepositioned) {
+            return; // Already repositioned
+        }
+        
+        // Find the existing TextView and RecyclerView
+        TextView recommendedTitle = findViewById(R.id.recommendedForYou);
+        RecyclerView recommendedRecyclerView = findViewById(R.id.recyclerViewRec);
+        
+        if (recommendedTitle == null || recommendedRecyclerView == null || watchHistoryRecyclerView == null) {
+            return;
+        }
+        
+        // Check if Recommended For You is already after Watch History
+        int watchHistoryIndex = -1;
+        int recommendedIndex = -1;
+        
+        for (int i = 0; i < mainContainer.getChildCount(); i++) {
+            View child = mainContainer.getChildAt(i);
+            if (child.equals(watchHistoryRecyclerView)) {
+                watchHistoryIndex = i;
+            }
+            if (child.equals(recommendedTitle)) {
+                recommendedIndex = i;
+            }
+        }
+        
+        // If Recommended For You is already right after Watch History, no need to move
+        if (watchHistoryIndex >= 0 && recommendedIndex == watchHistoryIndex + 1) {
+            recommendedSectionRepositioned = true;
+            return;
+        }
+        
+        // Remove from current position
+        ViewGroup parent = (ViewGroup) recommendedTitle.getParent();
+        if (parent != null && parent.equals(mainContainer)) {
+            parent.removeView(recommendedTitle);
+            parent.removeView(recommendedRecyclerView);
+        }
+        
+        // Find new position after Watch History
+        int insertIndex = watchHistoryIndex + 1;
+        
+        // Add the views at the correct position
+        mainContainer.addView(recommendedTitle, insertIndex);
+        mainContainer.addView(recommendedRecyclerView, insertIndex + 1);
+        
+        recommendedSectionRepositioned = true;
+        Log.d(TAG, "[MainActivity] Repositioned Recommended For You section after Watch History at index " + insertIndex);
+    }
+    
+    private void addWatchListSection(List<String> movieTitles) {
+        if (watchListRecyclerView != null) {
+            // Section already exists, just update the movies immediately
+            executorService.execute(() -> {
+                fetchMoviesForSection(movieTitles, watchListMovieList, watchListAdapter, "My List");
+            });
+            return;
+        }
+        
+        // Create the title TextView
+        TextView title = new TextView(this);
+        title.setText("My List");
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), Typeface.BOLD);
+        title.setPadding(16, 24, 0, 8);
+
+        // Create the RecyclerView
+        watchListRecyclerView = new RecyclerView(this);
+        watchListRecyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        watchListRecyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        watchListRecyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        watchListRecyclerView.setClipToPadding(false);
+
+        // Create list and adapter
+        watchListMovieList = new ArrayList<>();
+        watchListAdapter = new MoviesAdapter(this, watchListMovieList, profileId);
+        watchListRecyclerView.setAdapter(watchListAdapter);
+
+        // Add to main container first (UI work)
+        mainContainer.addView(title);
+        mainContainer.addView(watchListRecyclerView);
+        Log.d(TAG, "[MainActivity] Created My List section with " + movieTitles.size() + " movies");
+        
+        // Fetch movies on background thread
+        executorService.execute(() -> {
+            fetchMoviesForSection(movieTitles, watchListMovieList, watchListAdapter, "My List");
+        });
+    }
+    
+    private void addFavoritesSection(List<String> movieTitles) {
+        if (favoritesRecyclerView != null) {
+            // Section already exists, just update the movies immediately
+            executorService.execute(() -> {
+                fetchMoviesForSection(movieTitles, favoritesMovieList, favoritesAdapter, "Favorites");
+            });
+            return;
+        }
+        
+        // Create the title TextView
+        TextView title = new TextView(this);
+        title.setText("Favorites");
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), Typeface.BOLD);
+        title.setPadding(16, 24, 0, 8);
+
+        // Create the RecyclerView
+        favoritesRecyclerView = new RecyclerView(this);
+        favoritesRecyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        favoritesRecyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        favoritesRecyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        favoritesRecyclerView.setClipToPadding(false);
+
+        // Create list and adapter
+        favoritesMovieList = new ArrayList<>();
+        favoritesAdapter = new MoviesAdapter(this, favoritesMovieList, profileId);
+        favoritesRecyclerView.setAdapter(favoritesAdapter);
+
+        // Add to main container first (UI work)
+        mainContainer.addView(title);
+        mainContainer.addView(favoritesRecyclerView);
+        Log.d(TAG, "[MainActivity] Created Favorites section with " + movieTitles.size() + " movies");
+        
+        // Fetch movies on background thread
+        executorService.execute(() -> {
+            fetchMoviesForSection(movieTitles, favoritesMovieList, favoritesAdapter, "Favorites");
+        });
+    }
+    
+    private void fetchMoviesForSection(List<String> movieTitles, List<Movie> movieList, MoviesAdapter adapter, String sectionName) {
+        if (movieTitles == null || movieTitles.isEmpty()) {
+            Log.w(TAG, "[MainActivity] " + sectionName + ": No movie titles to fetch");
+            return;
+        }
+
+        List<Call<MovieResponse>> movieTitleCalls = repository.getMoviePosters(movieTitles);
+        final int totalCalls = movieTitleCalls.size();
+        final List<Movie> fetchedMovies = Collections.synchronizedList(new ArrayList<>());
+        final int[] completedCount = {0};
+
+        Log.d(TAG, "[MainActivity] " + sectionName + ": Starting " + totalCalls + " API calls for movie posters");
+
+        for (Call<MovieResponse> moviePosterCall : movieTitleCalls) {
+            moviePosterCall.enqueue(new Callback<MovieResponse>() {
+                @Override
+                public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        try {
+                            MovieResponse body = response.body();
+                            if (body.getResults() != null && !body.getResults().isEmpty()) {
+                                String moviename = body.getResults().get(0).getTitle();
+                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
+                                fetchedMovies.add(new Movie(moviename, movieposterpath));
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "[MainActivity] " + sectionName + ": Error parsing TMDB response", e);
+                        }
+                    }
+
+                    // Check if all calls are completed
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            // All calls completed, remove duplicates using HashSet for O(n) performance
+                            Set<String> seenTitles = new HashSet<>();
+                            List<Movie> uniqueMovies = new ArrayList<>();
+                            for (Movie movie : fetchedMovies) {
+                                if (seenTitles.add(movie.getTitle())) {
+                                    uniqueMovies.add(movie);
+                                }
+                            }
+
+                            // Update the list and adapter on UI thread
+                            runOnUiThread(() -> {
+                                movieList.clear();
+                                movieList.addAll(uniqueMovies);
+                                adapter.notifyDataSetChanged();
+                                Log.d(TAG, "[MainActivity] " + sectionName + ": ✅ Added " + uniqueMovies.size() + " unique movies (from " + movieTitles.size() + " titles)");
+                            });
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<MovieResponse> call, Throwable t) {
+                    Log.e(TAG, "[MainActivity] " + sectionName + ": TMDB API Call failed: " + t.getMessage(), t);
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            // Even if some failed, post what we have (avoiding duplicates)
+                            if (!fetchedMovies.isEmpty()) {
+                                // Remove duplicates using HashSet for O(n) performance
+                                Set<String> seenTitles = new HashSet<>();
+                                List<Movie> uniqueMovies = new ArrayList<>();
+                                for (Movie movie : fetchedMovies) {
+                                    if (seenTitles.add(movie.getTitle())) {
+                                        uniqueMovies.add(movie);
+                                    }
+                                }
+
+                                runOnUiThread(() -> {
+                                    movieList.clear();
+                                    movieList.addAll(uniqueMovies);
+                                    adapter.notifyDataSetChanged();
+                                    Log.d(TAG, "[MainActivity] " + sectionName + ": ✅ Added " + uniqueMovies.size() + " unique movies (some API calls failed)");
+                                });
+                            } else {
+                                runOnUiThread(() -> {
+                                    movieList.clear();
+                                    adapter.notifyDataSetChanged();
+                                    Log.w(TAG, "[MainActivity] " + sectionName + ": ⚠️ No movies were successfully fetched");
+                                });
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    private void removeSectionIfExists(String sectionTitle) {
+        // Find and remove section by title
+        for (int i = 0; i < mainContainer.getChildCount(); i++) {
+            View child = mainContainer.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView titleView = (TextView) child;
+                if (titleView.getText().toString().equals(sectionTitle)) {
+                    // Remove title and corresponding RecyclerView
+                    mainContainer.removeView(titleView);
+                    if (i < mainContainer.getChildCount()) {
+                        View nextChild = mainContainer.getChildAt(i);
+                        if (nextChild instanceof RecyclerView) {
+                            mainContainer.removeView(nextChild);
+                        }
+                    }
+                    // Reset references
+                    if (sectionTitle.equals("Watch History")) {
+                        watchHistoryRecyclerView = null;
+                        watchHistoryAdapter = null;
+                        watchHistoryMovieList = null;
+                    } else if (sectionTitle.equals("My List")) {
+                        watchListRecyclerView = null;
+                        watchListAdapter = null;
+                        watchListMovieList = null;
+                    } else if (sectionTitle.equals("Favorites")) {
+                        favoritesRecyclerView = null;
+                        favoritesAdapter = null;
+                        favoritesMovieList = null;
+                    }
+                    Log.d(TAG, "[MainActivity] Removed section: " + sectionTitle);
+                    break;
+                }
+            }
+        }
+    }
+    
+    private void removeCategorySection(String sectionTitleText) {
+        // Find and remove "Because You Watched" section by title
+        for (int i = 0; i < mainContainer.getChildCount(); i++) {
+            View child = mainContainer.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView titleView = (TextView) child;
+                if (titleView.getText().toString().equals(sectionTitleText)) {
+                    // Remove title and corresponding RecyclerView
+                    mainContainer.removeView(titleView);
+                    if (i < mainContainer.getChildCount()) {
+                        View nextChild = mainContainer.getChildAt(i);
+                        if (nextChild instanceof RecyclerView) {
+                            mainContainer.removeView(nextChild);
+                            // Also remove from genre maps if it exists there
+                            RecyclerView recyclerView = (RecyclerView) nextChild;
+                            String genreKey = null;
+                            for (Map.Entry<String, RecyclerView> entry : genreRecyclerViewMap.entrySet()) {
+                                if (entry.getValue().equals(recyclerView)) {
+                                    genreKey = entry.getKey();
+                                    break;
+                                }
+                            }
+                            if (genreKey != null) {
+                                genreRecyclerViewMap.remove(genreKey);
+                                genreAdapterMap.remove(genreKey);
+                                genreMovieListMap.remove(genreKey);
+                            }
+                        }
+                    }
+                    Log.d(TAG, "[MainActivity] Removed category section: " + sectionTitleText);
+                    break;
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (profileListener != null) {
+            profileListener.remove();
+        }
+        // Shutdown ExecutorService to prevent memory leaks
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }
     }
 }

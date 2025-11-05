@@ -4,7 +4,9 @@ import com.google.firebase.firestore.DocumentId;
 import com.google.firebase.firestore.Exclude;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Profile {
     @DocumentId
@@ -14,11 +16,13 @@ public class Profile {
     private int colorIndex;
     private Object favorites; // Use Object for flexible deserialization
     private Object watchList; // Use Object for flexible deserialization
+    private Object watchHistory; // Use Object for flexible deserialization
 
     // Default constructor for Firestore
     public Profile() {
         this.favorites = new ArrayList<String>();
         this.watchList = new ArrayList<String>();
+        this.watchHistory = new HashMap<String, Long>();
     }
 
     public Profile(String name, String avatarUrl) {
@@ -27,6 +31,7 @@ public class Profile {
         this.colorIndex = -1;
         this.favorites = new ArrayList<String>();
         this.watchList = new ArrayList<String>();
+        this.watchHistory = new HashMap<String, Long>();
     }
 
     public Profile(String name, String avatarUrl, int colorIndex) {
@@ -35,6 +40,7 @@ public class Profile {
         this.colorIndex = colorIndex;
         this.favorites = new ArrayList<String>();
         this.watchList = new ArrayList<String>();
+        this.watchHistory = new HashMap<String, Long>();
     }
 
     public String getId() { return id; }
@@ -47,6 +53,8 @@ public class Profile {
     public void setFavorites(Object favorites) { this.favorites = favorites; }
     public Object getWatchList() { return watchList; }
     public void setWatchList(Object watchList) { this.watchList = watchList; }
+    public Object getWatchHistory() { return watchHistory; }
+    public void setWatchHistory(Object watchHistory) { this.watchHistory = watchHistory; }
 
     @Exclude
     @SuppressWarnings("unchecked")
@@ -71,6 +79,22 @@ public class Profile {
             if (!rawList.isEmpty() && rawList.get(0) instanceof String) {
                 return (List<String>) rawList;
             }
+        }
+        return new ArrayList<>();
+    }
+
+    @Exclude
+    @SuppressWarnings("unchecked")
+    public List<String> getWatchHistoryAsList() {
+        if (watchHistory instanceof Map) {
+            Map<?, ?> historyMap = (Map<?, ?>) watchHistory;
+            List<String> titles = new ArrayList<>();
+            for (Object key : historyMap.keySet()) {
+                if (key instanceof String) {
+                    titles.add((String) key);
+                }
+            }
+            return titles;
         }
         return new ArrayList<>();
     }
