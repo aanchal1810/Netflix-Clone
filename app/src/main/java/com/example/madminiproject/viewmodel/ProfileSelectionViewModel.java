@@ -25,6 +25,7 @@ public class ProfileSelectionViewModel extends ViewModel {
     private final MutableLiveData<Boolean> navigateToMain = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> profileLimitReached = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> profileAddedForOnboarding = new MutableLiveData<>(false);
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
@@ -46,6 +47,14 @@ public class ProfileSelectionViewModel extends ViewModel {
         return profileLimitReached;
     }
 
+    public LiveData<Boolean> getProfileAddedForOnboarding() {
+        return profileAddedForOnboarding;
+    }
+
+    public void onOnboardingNavigated() {
+        profileAddedForOnboarding.setValue(false);
+    }
+
     public void fetchProfiles() {
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
@@ -63,19 +72,11 @@ public class ProfileSelectionViewModel extends ViewModel {
 
     private void handleFetchSuccess(QuerySnapshot queryDocumentSnapshots) {
         if (queryDocumentSnapshots != null) {
-            List<Profile> profileList = new ArrayList<>();
-            queryDocumentSnapshots.getDocuments().forEach(snapshot -> {
-                Profile profile = snapshot.toObject(Profile.class);
-                if (profile != null) {
-                    profile.setProfileId(snapshot.getId()); // 🔥 THIS FIXES NULL IDs
-                    profileList.add(profile);
-                }
-            });
+            List<Profile> profileList = queryDocumentSnapshots.toObjects(Profile.class);
             profiles.setValue(profileList);
             profileLimitReached.setValue(profileList.size() >= MAX_PROFILES);
         }
     }
-
 
     public void onProfileSelected(Profile profile) {
         // Here you would save the selected profile to SharedPreferences
@@ -120,18 +121,12 @@ public class ProfileSelectionViewModel extends ViewModel {
 
         int colorIndex = getNextAvailableColor(currentProfiles);
 
-        // Create a new document with a generated ID
-        String docId = db.collection("users").document(userId)
-                .collection("profiles").document().getId();
-
-        Profile newProfile = new Profile(docId, profileName, avatarUrl, colorIndex);
-
-        // Save using that specific ID
-        db.collection("users").document(userId)
-                .collection("profiles")
-                .document(docId)
-                .set(newProfile)
-                .addOnSuccessListener(aVoid -> fetchProfiles())
+        Profile newProfile = new Profile(profileName, avatarUrl, colorIndex);
+        db.collection("users").document(userId).collection("profiles").add(newProfile)
+                .addOnSuccessListener(documentReference -> {
+                    fetchProfiles();
+                    profileAddedForOnboarding.setValue(true);
+                })
                 .addOnFailureListener(e -> {
                     errorMessage.setValue("Failed to add profile: " + e.getMessage());
                 });

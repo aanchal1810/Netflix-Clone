@@ -88,14 +88,14 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         );
-        adapter = new MoviesAdapter(this, movieList);
+        adapter = new MoviesAdapter(this, movieList,profileId);
         recyclerView.setAdapter(adapter);
 
         recyclerViewRec = findViewById(R.id.recyclerViewRec);
         recyclerViewRec.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         );
-        adapterrec = new MoviesAdapter(this, recmovielist);
+        adapterrec = new MoviesAdapter(this, recmovielist,profileId);
         recyclerViewRec.setAdapter(adapterrec);
 
         for (String watchedMoviesTitle : watchedMoviesTitles){
@@ -242,7 +242,7 @@ public class MainActivity extends AppCompatActivity {
 
                         // Each RecyclerView needs its own list and adapter
                         List<Movie> sectionMovieList = new ArrayList<>();
-                        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList);
+                        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList,profileId);
                         recyclerView.setAdapter(sectionAdapter);
 
                         // Store references for future updates
@@ -283,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Each RecyclerView needs its own list and adapter
         List<Movie> sectionMovieList = new ArrayList<>();
-        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList);
+        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList,profileId);
         recyclerView.setAdapter(sectionAdapter);
 
         // Get ViewModel and observe data for this specific section

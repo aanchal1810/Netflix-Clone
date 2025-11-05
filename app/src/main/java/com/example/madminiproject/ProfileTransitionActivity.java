@@ -11,7 +11,6 @@ import android.view.Window;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
@@ -22,6 +21,7 @@ public class ProfileTransitionActivity extends AppCompatActivity {
 
     private int bgResId;
     private String avatarUrl;
+    private String profileId;
     private boolean isImageAvatar;
     private boolean hasStartedMain = false;
 
@@ -34,12 +34,12 @@ public class ProfileTransitionActivity extends AppCompatActivity {
         window.setSharedElementExitTransition(makeArcMotionTransition());
 
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_profile_transition);
 
         ImageView avatar = findViewById(R.id.transition_avatar);
         Intent i = getIntent();
 
+        profileId = i.getStringExtra("PROFILE_ID");
         avatarUrl = i.getStringExtra("PROFILE_AVATAR_URL");
         bgResId = i.getIntExtra("PROFILE_BG_RES_ID", -1);
         isImageAvatar = i.getBooleanExtra("IS_IMAGE_AVATAR", false);
@@ -86,6 +86,7 @@ public class ProfileTransitionActivity extends AppCompatActivity {
         Log.d(TAG, "goToMainActivity: avatar transitionName=" + transitionName + " bgResId=" + bgResId);
 
         Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra("PROFILE_ID", profileId);
         intent.putExtra("PROFILE_AVATAR_URL", avatarUrl);
         intent.putExtra("PROFILE_BG_RES_ID", bgResId);
         intent.putExtra("IS_IMAGE_AVATAR", isImageAvatar);

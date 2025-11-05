@@ -40,9 +40,9 @@ public class ManageProfileActivity extends AppCompatActivity {
         adapter = new ProfileAdapter(new ArrayList<>(), new ProfileAdapter.OnProfileSelectedListener() {
             @Override
             public void onProfileSelected(Profile profile, View sharedView) {
-                Log.d("ManageProfileActivity", "Profile ID: " + profile.getProfileId());
+                Log.d("ManageProfileActivity", "Profile ID: " + profile.getId());
                 Intent intent = new Intent(ManageProfileActivity.this, EditProfileActivity.class);
-                intent.putExtra("PROFILE_ID", profile.getProfileId());
+                intent.putExtra("PROFILE_ID", profile.getId());
                 intent.putExtra("PROFILE_NAME", profile.getName());
                 intent.putExtra("PROFILE_AVATAR_URL", profile.getAvatarUrl());
                 intent.putExtra("COL_INX", profile.getColorIndex());

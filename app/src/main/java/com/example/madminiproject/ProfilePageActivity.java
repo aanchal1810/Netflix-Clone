@@ -178,7 +178,7 @@ public class ProfilePageActivity extends AppCompatActivity {
                 viewModel.onProfileSelected(profile);
 
                 Intent intent = new Intent(ProfilePageActivity.this, ProfileTransitionActivity.class);
-                intent.putExtra("PROFILE_ID", profile.getProfileId());
+                intent.putExtra("PROFILE_ID", profile.getId());
                 intent.putExtra("PROFILE_AVATAR_URL", profile.getAvatarUrl());
                 intent.putExtra("IS_IMAGE_AVATAR", isImageAvatar);
                 intent.putExtra("PROFILE_BG_RES_ID", bgResId);

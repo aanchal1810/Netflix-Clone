@@ -14,13 +14,13 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
 import com.example.madminiproject.viewmodel.PlayerViewModel;
+import com.example.madminiproject.viewmodel.SearchViewModel;
 import com.google.android.gms.cast.framework.CastButtonFactory;
 import com.google.android.gms.cast.framework.CastContext;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
@@ -39,7 +39,9 @@ public class DetailsActivity extends AppCompatActivity {
     private CollapsingToolbarLayout collapsingToolbar;
     private Toolbar toolbar;
     private TextView favoriteButton;
+    private TextView watchListButton;
     private PlayerViewModel playerViewModel;
+    private SearchViewModel searchViewModel;
     private CastContext mCastContext;
     private long downloadID;
 
@@ -53,10 +55,10 @@ public class DetailsActivity extends AppCompatActivity {
         }
     };
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_details);
 
         toolbar = findViewById(R.id.toolbar);
@@ -66,6 +68,7 @@ public class DetailsActivity extends AppCompatActivity {
         mCastContext = CastContext.getSharedInstance(this);
 
         playerViewModel = new ViewModelProvider(this).get(PlayerViewModel.class);
+        searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);
 
         movieBackdrop = findViewById(R.id.detail_movie_backdrop);
         movieOverview = findViewById(R.id.detail_movie_overview);
@@ -73,13 +76,31 @@ public class DetailsActivity extends AppCompatActivity {
         downloadButton = findViewById(R.id.download_button);
         collapsingToolbar = findViewById(R.id.collapsing_toolbar);
         favoriteButton = findViewById(R.id.favorite_button);
+        watchListButton = findViewById(R.id.watchlist_button);
+
+
+
+        searchViewModel.getCurrentProfile().observe(this, profile -> {
+            if (profile != null && playerViewModel.getMovie().getValue() != null) {
+                Movie movie = playerViewModel.getMovie().getValue();
+                boolean isWatchlisted = profile.getWatchListAsList().contains(movie.getTitle());
+                movie.setWatchlisted(isWatchlisted);
+                updateWatchlistButton(isWatchlisted);
+            }
+        });
+
 
         registerReceiver(onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), RECEIVER_EXPORTED);
 
         Movie movie = (Movie) getIntent().getSerializableExtra("movie");
+        String profileId = getIntent().getStringExtra("profileId");
 
         if (movie != null) {
             playerViewModel.setMovie(movie);
+            if (profileId != null) {
+                playerViewModel.loadProfile(profileId);
+                searchViewModel.loadProfile(profileId);
+            }
 
             playerViewModel.getMovie().observe(this, observedMovie -> {
                 if (observedMovie != null) {
@@ -91,14 +112,29 @@ public class DetailsActivity extends AppCompatActivity {
                             .into(movieBackdrop);
 
                     updateFavoriteButton(observedMovie.isFavorite());
+                    updateWatchlistButton(observedMovie.isWatchlisted());
                 }
             });
 
             favoriteButton.setOnClickListener(v -> playerViewModel.toggleFavorite());
+            watchListButton.setOnClickListener(v -> {
+                Movie movieVal = playerViewModel.getMovie().getValue();
+                if (movieVal == null) return;
+
+                boolean currentlyWatchlisted = movieVal.isWatchlisted();
+                boolean newState = !currentlyWatchlisted;
+
+                movieVal.setWatchlisted(newState);
+                updateWatchlistButton(newState);
+
+                searchViewModel.toggleWatchList(movieVal.getTitle());
+            });
+
 
             playButton.setOnClickListener(v -> {
                 Intent intent = new Intent(DetailsActivity.this, PlayerActivity.class);
                 intent.putExtra("movie", playerViewModel.getMovie().getValue());
+                intent.putExtra("profileId", profileId);
                 startActivity(intent);
             });
 
@@ -112,7 +148,6 @@ public class DetailsActivity extends AppCompatActivity {
 
         String videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
-        // Save movie metadata as a .json file
         try {
             String json = new Gson().toJson(movie);
             String jsonFileName = movie.getTitle() + ".json";
@@ -142,9 +177,21 @@ public class DetailsActivity extends AppCompatActivity {
 
     private void updateFavoriteButton(boolean isFavorite) {
         if (isFavorite) {
+            favoriteButton.setText("Added");
             favoriteButton.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_favorite_red_24dp, 0, 0);
         } else {
+            favoriteButton.setText("My List");
             favoriteButton.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_favorite_border_red_24dp, 0, 0);
+        }
+    }
+
+    private void updateWatchlistButton(boolean isWatchlisted) {
+        if (isWatchlisted) {
+            watchListButton.setText("Added");
+            watchListButton.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_watchlist_added_24dp, 0, 0);
+        } else {
+            watchListButton.setText("Add to Watch Later");
+            watchListButton.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_watchlist_add_24dp, 0, 0);
         }
     }
 
