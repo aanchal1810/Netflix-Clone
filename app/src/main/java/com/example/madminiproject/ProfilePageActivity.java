@@ -87,6 +87,14 @@ public class ProfilePageActivity extends AppCompatActivity {
         profileIcon = navbarBottom.findViewById(R.id.navbar_profile_icon);
         homeIcon = navbarBottom.findViewById(R.id.homeIcon);
 
+        LinearLayout downloadsCard = findViewById(R.id.downloads_card);
+        downloadsCard.setOnClickListener(v -> {
+                    Intent goToDownloads = new Intent(ProfilePageActivity.this, DownloadsActivity.class);
+
+
+                    startActivity(goToDownloads);
+                });
+
         // Initialize ViewModel
         viewModel = new ViewModelProvider(this).get(ProfileSelectionViewModel.class);
 

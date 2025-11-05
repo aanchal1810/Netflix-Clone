@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">MAD MiniProject</string>
     <string name="media_route_menu_title">Cast</string>
+    <string name="exo_download_notification_channel_name">Downloads</string>
+    <string name="exo_download_notification_channel_description">Notifications for media downloads</string>
 </resources>
