@@ -19,11 +19,13 @@ import java.util.List;
 public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.MovieViewHolder> {
     private final List<Movie> movies;
     private final Context context;
+    private final String profileId;
     private static final String IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
-    public MoviesAdapter(Context context, List<Movie> movies) {
+    public MoviesAdapter(Context context, List<Movie> movies,String profileId) {
         this.context = context;
         this.movies = movies;
+        this.profileId = profileId;
     }
 
     @NonNull
@@ -56,6 +58,7 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.MovieViewH
             Bundle bundle = new Bundle();
             bundle.putSerializable("movie", m);
             intent.putExtras(bundle);
+            intent.putExtra("profileId", profileId);
             context.startActivity(intent);
         });
     }

@@ -530,9 +530,11 @@ public class MainViewModel extends AndroidViewModel {
                                 }
                             }
 
-                            // Update the map and post the updated value
+                            // Update the map and post the updated value immediately
+                            // This makes LiveData reactive - UI updates as soon as each genre is ready
                             synchronized (currentMap) {
                                 currentMap.put(genre, uniqueMovies);
+                                // Post a new copy to trigger observers
                                 genreMovies.postValue(new HashMap<>(currentMap));
                             }
                             Log.d(TAG, "[Genre: " + genre + "] ✅ Added " + uniqueMovies.size() + " unique movies (from " + movieTitles.size() + " titles)");
@@ -564,12 +566,14 @@ public class MainViewModel extends AndroidViewModel {
 
                                 synchronized (currentMap) {
                                     currentMap.put(genre, uniqueMovies);
+                                    // Post immediately even if some calls failed - UI gets partial data reactively
                                     genreMovies.postValue(new HashMap<>(currentMap));
                                 }
                                 Log.d(TAG, "[Genre: " + genre + "] ✅ Added " + uniqueMovies.size() + " unique movies (some API calls failed)");
                             } else {
                                 synchronized (currentMap) {
                                     currentMap.put(genre, new ArrayList<>());
+                                    // Still post to notify observers (even if empty)
                                     genreMovies.postValue(new HashMap<>(currentMap));
                                 }
                                 Log.w(TAG, "[Genre: " + genre + "] ⚠️ No movies were successfully fetched");

@@ -16,7 +16,6 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.madminiproject.viewmodel.SearchViewModel;
@@ -33,6 +32,8 @@ public class Search extends AppCompatActivity {
     private MoviesAdapter adapter;
     private List<Movie> searchList = new ArrayList<>();
     private SearchViewModel searchViewModel;
+    private String profileId;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,7 +49,10 @@ public class Search extends AppCompatActivity {
         searchInput = findViewById(R.id.search_item);
         searchRecycler = findViewById(R.id.recyclerViewSearch);
         microphone = findViewById(R.id.microphone);
-        adapter = new MoviesAdapter(this, searchList);
+
+        profileId = getIntent().getStringExtra("profileId");
+
+        adapter = new MoviesAdapter(this, searchList,profileId);
         searchRecycler.setLayoutManager(new GridLayoutManager(this, 2));
         searchRecycler.setAdapter(adapter);
         searchViewModel = new ViewModelProvider(this).get(SearchViewModel.class);

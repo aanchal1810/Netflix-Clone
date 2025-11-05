@@ -7,8 +7,6 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -33,13 +31,13 @@ public class PlayerActivity extends AppCompatActivity {
     private CastContext castContext;
     private Movie movie;
     private ImageView backdropImage;
+    private String profileId;
 
     private static final String DUMMY_VIDEO_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_player);
 
         playerViewModel = new ViewModelProvider(this).get(PlayerViewModel.class);
@@ -75,7 +73,7 @@ public class PlayerActivity extends AppCompatActivity {
         });
 
         castContext = CastContext.getSharedInstance(this);
-
+        profileId = getIntent().getStringExtra("profileId");
         String movieUrl = getIntent().getStringExtra("movie_url");
         if (movieUrl != null) {
             String movieTitle = getIntent().getStringExtra("movie_title");
@@ -83,6 +81,9 @@ public class PlayerActivity extends AppCompatActivity {
         } else {
             movie = (Movie) getIntent().getSerializableExtra("movie");
             playerViewModel.setMovie(movie);
+            if (profileId != null) {
+                playerViewModel.loadProfile(profileId);
+            }
             playerViewModel.getMovie().observe(this, this::preparePlayer);
         }
 
@@ -209,6 +210,9 @@ public class PlayerActivity extends AppCompatActivity {
         super.onPause();
         if (player != null) {
             playerViewModel.setPlaybackPosition(player.getCurrentPosition());
+            if (movie != null) {
+                playerViewModel.saveWatchHistory(movie.getTitle(), player.getCurrentPosition());
+            }
             player.pause();
         }
     }
@@ -223,6 +227,9 @@ public class PlayerActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (player != null) {
+            if (movie != null) {
+                playerViewModel.saveWatchHistory(movie.getTitle(), player.getCurrentPosition());
+            }
             player.release();
             player = null;
         }

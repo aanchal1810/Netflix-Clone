@@ -77,7 +77,7 @@ public class ProfileRepository {
                             return;
                         }
                         if (profile != null){
-                            profile.setProfileId(snapshot.getId());
+                            profile.setId(snapshot.getId());
                         }
                         if (newName != null && !newName.isEmpty()) {
                             profile.setName(newName);

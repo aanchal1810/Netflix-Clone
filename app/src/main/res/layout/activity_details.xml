@@ -106,6 +106,16 @@
                     android:text="My List"
                     android:textColor="@android:color/darker_gray" />
 
+                <TextView
+                    android:id="@+id/watchlist_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="48dp"
+                    android:drawableTop="@drawable/ic_watchlist_add_24dp"
+                    android:gravity="center_horizontal"
+                    android:text="Rate"
+                    android:textColor="@android:color/darker_gray" />
+
             </LinearLayout>
 
         </LinearLayout>

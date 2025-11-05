@@ -19,7 +19,6 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -66,7 +65,7 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
         window.requestFeature(Window.FEATURE_CONTENT_TRANSITIONS);
         window.setSharedElementEnterTransition(makeArcMotionTransition());
         window.setSharedElementExitTransition(makeArcMotionTransition());
-        EdgeToEdge.enable(this);
+
         setContentView(R.layout.activity_profile_selection);
 
         viewModel = new ViewModelProvider(this).get(ProfileSelectionViewModel.class);
@@ -91,6 +90,14 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
         });
 
         viewModel.isProfileLimitReached().observe(this, adapter::setProfileLimitReached);
+
+        viewModel.getProfileAddedForOnboarding().observe(this, shouldNavigate -> {
+            if (shouldNavigate) {
+                Intent intent = new Intent(ProfileSelectionActivity.this, OnboardingSwipe.class);
+                startActivity(intent);
+                viewModel.onOnboardingNavigated(); // Reset the trigger
+            }
+        });
 
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             loadingSpinner.setVisibility(View.VISIBLE);
@@ -118,6 +125,7 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
         viewModel.onProfileSelected(profile);
 
         Intent intent = new Intent(this, ProfileTransitionActivity.class);
+        intent.putExtra("PROFILE_ID", profile.getId());
         intent.putExtra("PROFILE_AVATAR_URL", profile.getAvatarUrl());
         intent.putExtra("IS_IMAGE_AVATAR", isImageAvatar);
         intent.putExtra("PROFILE_BG_RES_ID", bgResId);
