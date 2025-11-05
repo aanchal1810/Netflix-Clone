@@ -22,6 +22,7 @@ android {
         println("DEBUG: TMDB_API_KEY = ${project.findProperty("TMDB_API_KEY")}")
         val apiKey: String = project.findProperty("TMDB_API_KEY") as String? ?: ""
         buildConfigField("String", "TMDB_API_KEY", "\"$apiKey\"")
+        buildConfigField ("boolean", "USE_DECODER_EXTENSIONS", "false")
 
 
     }
@@ -53,6 +54,7 @@ dependencies {
     implementation(libs.image.cropper)
     implementation(libs.firebase.storage)
     implementation(libs.core.animation)
+    implementation(libs.media3.datasource.cronet)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
@@ -70,11 +72,14 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
-    implementation("androidx.media3:media3-exoplayer:1.4.1")
-// UI components (PlayerView, etc.)
-    implementation("androidx.media3:media3-ui:1.4.1")
-// Common classes (MediaItem, MediaMetadata, PlaybackParameters)
-    implementation("androidx.media3:media3-common:1.4.1")
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
+    implementation("androidx.media3:media3-ui:1.3.1")
+    implementation("androidx.media3:media3-exoplayer-dash:1.3.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.3.1")
+    implementation("androidx.media3:media3-session:1.3.1")
+    implementation("androidx.media3:media3-database:1.3.1")
+    implementation("androidx.media3:media3-exoplayer-workmanager:1.3.1")
+    implementation("org.checkerframework:checker-qual:3.42.0")
 
     implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
 }

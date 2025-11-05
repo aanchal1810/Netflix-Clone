@@ -7,6 +7,8 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import androidx.annotation.OptIn;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -14,7 +16,10 @@ import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.PlaybackParameters;
 import androidx.media3.common.Player;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.datasource.DataSource;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 import androidx.mediarouter.app.MediaRouteButton;
 
@@ -35,6 +40,7 @@ public class PlayerActivity extends AppCompatActivity {
 
     private static final String DUMMY_VIDEO_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
+    @OptIn(markerClass = UnstableApi.class)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,86 +50,45 @@ public class PlayerActivity extends AppCompatActivity {
         playerView = findViewById(R.id.player_view);
         backdropImage = findViewById(R.id.backdrop_image);
 
-        player = new ExoPlayer.Builder(this).build();
+        player = new ExoPlayer.Builder(this)
+                .setMediaSourceFactory(new DefaultMediaSourceFactory(DemoUtil.getDataSourceFactory(this)))
+                .build();
         playerView.setPlayer(player);
 
-        player.addListener(new Player.Listener() {
-            @Override
-            public void onIsPlayingChanged(boolean isPlaying) {
-                ImageButton exoPlay = findViewById(R.id.exo_play);
-                ImageButton exoPause = findViewById(R.id.exo_pause);
-                View videoSurface = playerView.getVideoSurfaceView();
-
-                if (isPlaying) {
-                    exoPlay.setVisibility(View.GONE);
-                    exoPause.setVisibility(View.VISIBLE);
-                    backdropImage.animate().alpha(0f).setDuration(500);
-                    if (videoSurface != null) {
-                        videoSurface.setVisibility(View.VISIBLE);
-                    }
-                } else {
-                    exoPlay.setVisibility(View.VISIBLE);
-                    exoPause.setVisibility(View.GONE);
-                    backdropImage.animate().alpha(1f).setDuration(500);
-                    if (videoSurface != null) {
-                        videoSurface.setVisibility(View.GONE);
-                    }
-                }
-            }
-        });
-
-        castContext = CastContext.getSharedInstance(this);
-        profileId = getIntent().getStringExtra("profileId");
-        String movieUrl = getIntent().getStringExtra("movie_url");
-        if (movieUrl != null) {
-            String movieTitle = getIntent().getStringExtra("movie_title");
-            preparePlayer(movieUrl, movieTitle);
-        } else {
-            movie = (Movie) getIntent().getSerializableExtra("movie");
-            playerViewModel.setMovie(movie);
-            if (profileId != null) {
-                playerViewModel.loadProfile(profileId);
-            }
-            playerViewModel.getMovie().observe(this, this::preparePlayer);
+        // 🔹 Get Movie object
+        movie = (Movie) getIntent().getSerializableExtra("movie");
+        if (movie == null) {
+            // fallback dummy movie
+            movie = new Movie("Movie", null, null, "No overview available.");
         }
+
+        // 🔹 Use local URI if available, else online
+        Uri mediaUri = movie.getLocalUri() != null ? Uri.parse(movie.getLocalUri()) : Uri.parse(DUMMY_VIDEO_URL);
+        preparePlayer(mediaUri, movie);
 
         initializeCustomControls();
     }
+    private void preparePlayer(Uri uri, Movie movie) {
+        // Title and description
+        ((TextView)findViewById(R.id.video_title)).setText(movie.getTitle());
+        ((TextView)findViewById(R.id.video_description)).setText(movie.getOverview());
 
-    private void preparePlayer(Movie movie) {
-        if (movie == null) return;
+        // Backdrop
+        if (movie.getFullBackdropUrl() != null) {
+            Glide.with(this).load(movie.getFullBackdropUrl()).into(backdropImage);
+        }
 
-        preparePlayer(DUMMY_VIDEO_URL, movie.getTitle());
-
-        TextView descriptionView = findViewById(R.id.video_description);
-        descriptionView.setText(movie.getOverview());
-
-        Glide.with(this)
-                .load(movie.getFullBackdropUrl())
-                .into(backdropImage);
-    }
-
-    private void preparePlayer(String videoUrl, String title) {
-        TextView titleView = findViewById(R.id.video_title);
-        titleView.setText(title);
-
-        MediaMetadata mediaMetadata = new MediaMetadata.Builder()
-                .setTitle(title)
-                .build();
-
+        // Play video
         MediaItem mediaItem = new MediaItem.Builder()
-                .setUri(videoUrl)
-                .setMediaMetadata(mediaMetadata)
+                .setUri(uri)
+                .setMediaMetadata(new MediaMetadata.Builder().setTitle(movie.getTitle()).build())
                 .build();
 
         player.setMediaItem(mediaItem);
         player.prepare();
 
-        Long playbackPosition = playerViewModel.getPlaybackPosition().getValue();
-        if (playbackPosition != null) {
-            player.seekTo(playbackPosition);
-        }
-
+        Long pos = playerViewModel.getPlaybackPosition().getValue();
+        if (pos != null) player.seekTo(pos);
         player.play();
     }
 
@@ -218,7 +183,7 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStop() {
+protected void onStop() {
         super.onStop();
         playerView.onPause();
     }

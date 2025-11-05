@@ -220,7 +220,7 @@ public class MainViewModel extends AndroidViewModel {
                             MovieResponse body = response.body();
                             if (body.getResults() != null && !body.getResults().isEmpty()) {
                                 String moviename = body.getResults().get(0).getTitle();
-                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
+                                String movieposterpath = body.getResults().get(0).getPosterPath();
 
                                 Log.d(TAG, "[RecyclerView 2] Successfully fetched movie #" + (currentIndex + 1) + ": " + moviename);
                                 Log.v(TAG, "[RecyclerView 2] Poster URL: " + movieposterpath);

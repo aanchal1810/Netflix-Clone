@@ -15,6 +15,7 @@ imageCropper = "4.5.0"
 firebaseStorage = "21.0.0"
 castFramework = "21.5.0"
 coreAnimation = "1.0.0"
+media3DatasourceCronet = "1.8.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -32,6 +33,7 @@ image-cropper = { group = "com.vanniktech", name = "android-image-cropper", vers
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage", version.ref = "firebaseStorage" }
 play-services-cast-framework = { group = "com.google.android.gms", name = "play-services-cast-framework", version.ref = "castFramework" }
 core-animation = { group = "androidx.core", name = "core-animation", version.ref = "coreAnimation" }
+media3-datasource-cronet = { group = "androidx.media3", name = "media3-datasource-cronet", version.ref = "media3DatasourceCronet" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
