@@ -27,7 +27,11 @@ import com.yuyakaido.android.cardstackview.SwipeAnimationSetting;
 import com.yuyakaido.android.cardstackview.SwipeableMethod;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class OnboardingSwipe extends AppCompatActivity implements CardStackListener {
 
@@ -37,6 +41,7 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
     private CardStackAdapter adapter;
     private OnboardingViewModel viewModel;
     private int swipecounter = 0;
+    private ExecutorService executorService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +51,9 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
         drawerLayout = findViewById(R.id.drawer_layout);
         cardStackView = findViewById(R.id.card_stack_view);
         manager = new CardStackLayoutManager(this, this);
+
+        // Initialize ExecutorService for background processing
+        executorService = Executors.newFixedThreadPool(4);
 
         viewModel = new ViewModelProvider(this).get(OnboardingViewModel.class);
         viewModel.getMovies().observe(this, movies -> {
@@ -58,40 +66,64 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
                 // If adapter exists but list is empty, don't do anything to avoid clearing
                 return;
             }
-            // Create adapter once, then update it with new movies
-            // This way recommended movies are appended to initial movies in the ViewModel
-            if (adapter == null) {
-                adapter = new CardStackAdapter(new ArrayList<>(movies));
-                cardStackView.setAdapter(adapter);
-            } else {
-                // Compare adapter's current size with ViewModel's size
-                int adapterSize = adapter.getItemCount();
-                int viewModelSize = movies.size();
-                
-                if (viewModelSize > adapterSize) {
-                    // New movies were added, use incremental update
-                    List<Movie> newMovies = movies.subList(adapterSize, viewModelSize);
-                    adapter.addMovies(new ArrayList<>(newMovies));
-                    Log.d("CardStackView", "Added " + newMovies.size() + " new movies. Adapter size: " + adapter.getItemCount());
-                } else if (viewModelSize < adapterSize) {
-                    // List was reduced - this shouldn't happen normally
-                    // Only update if we're sure it's a replacement (e.g., adapter has way more items)
-                    // Otherwise, ignore to prevent loops
-                    if (adapterSize - viewModelSize > 5) {
-                        // Significant reduction, likely a reset
-                        adapter.setMovies(new ArrayList<>(movies));
-                        Log.d("CardStackView", "List significantly reduced, resetting adapter");
-                    }
-                    // Otherwise, ignore to prevent loops
+            
+            // Get adapter state on main thread before processing on background thread
+            CardStackAdapter currentAdapter = adapter;
+            int adapterSize = currentAdapter != null ? currentAdapter.getItemCount() : 0;
+            List<Movie> existingMovies = currentAdapter != null ? new ArrayList<>(currentAdapter.getSpots()) : new ArrayList<>();
+            int viewModelSize = movies.size();
+            
+            // Process movie list updates on background thread
+            executorService.execute(() -> {
+                // Create adapter once, then update it with new movies
+                // This way recommended movies are appended to initial movies in the ViewModel
+                if (currentAdapter == null) {
+                    // Create adapter on background thread, but set it on UI thread
+                    List<Movie> processedMovies = new ArrayList<>(movies);
+                    runOnUiThread(() -> {
+                        adapter = new CardStackAdapter(processedMovies);
+                        cardStackView.setAdapter(adapter);
+                        Log.d("CardStackView", "Initial adapter created with " + processedMovies.size() + " movies");
+                    });
                 } else {
-                    // Same size - likely a duplicate update, ignore it
-                    // Only update if adapter is empty (shouldn't happen, but safety check)
-                    if (adapterSize == 0) {
-                        adapter.setMovies(new ArrayList<>(movies));
+                    if (viewModelSize > adapterSize) {
+                        // New movies were added, process on background thread
+                        List<Movie> newMovies = new ArrayList<>(movies.subList(adapterSize, viewModelSize));
+                        // Filter duplicates on background thread
+                        List<Movie> uniqueNewMovies = filterDuplicates(newMovies, existingMovies);
+                        
+                        if (!uniqueNewMovies.isEmpty()) {
+                            runOnUiThread(() -> {
+                                adapter.addMovies(uniqueNewMovies);
+                                Log.d("CardStackView", "Added " + uniqueNewMovies.size() + " new movies. Adapter size: " + adapter.getItemCount());
+                            });
+                        }
+                    } else if (viewModelSize < adapterSize) {
+                        // List was reduced - this shouldn't happen normally
+                        // Only update if we're sure it's a replacement (e.g., adapter has way more items)
+                        // Otherwise, ignore to prevent loops
+                        if (adapterSize - viewModelSize > 5) {
+                            // Significant reduction, likely a reset
+                            List<Movie> processedMovies = new ArrayList<>(movies);
+                            runOnUiThread(() -> {
+                                adapter.setMovies(processedMovies);
+                                Log.d("CardStackView", "List significantly reduced, resetting adapter");
+                            });
+                        }
+                        // Otherwise, ignore to prevent loops
+                    } else {
+                        // Same size - likely a duplicate update, ignore it
+                        // Only update if adapter is empty (shouldn't happen, but safety check)
+                        if (adapterSize == 0) {
+                            List<Movie> processedMovies = new ArrayList<>(movies);
+                            runOnUiThread(() -> {
+                                adapter.setMovies(processedMovies);
+                            });
+                        }
+                        // Otherwise, ignore same-size updates to prevent loops
                     }
-                    // Otherwise, ignore same-size updates to prevent loops
                 }
-            }
+            });
         });
 
 
@@ -212,5 +244,42 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
             manager.setSwipeAnimationSetting(setting);
             cardStackView.swipe();
         });
+    }
+    
+    /**
+     * Filters duplicate movies from newMovies list by comparing with existing movies.
+     * This runs on background thread for better performance.
+     */
+    private List<Movie> filterDuplicates(List<Movie> newMovies, List<Movie> existingMovies) {
+        if (newMovies == null || newMovies.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        Set<String> existingTitles = new HashSet<>();
+        for (Movie movie : existingMovies) {
+            existingTitles.add(movie.getTitle());
+        }
+        
+        Set<String> seenTitles = new HashSet<>();
+        List<Movie> uniqueMovies = new ArrayList<>();
+        
+        for (Movie newMovie : newMovies) {
+            String title = newMovie.getTitle();
+            // Only add if not in existing movies and not already seen in newMovies
+            if (!existingTitles.contains(title) && seenTitles.add(title)) {
+                uniqueMovies.add(newMovie);
+            }
+        }
+        
+        return uniqueMovies;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Shutdown ExecutorService to prevent memory leaks
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }
     }
 }
