@@ -30,16 +30,13 @@
         </service>
         <activity
             android:name=".EditProfileActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:exported="false" />
         <activity
             android:name=".ManageProfileActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:exported="false" />
         <activity
             android:name=".ProfilePageActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:exported="false" />
 
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
@@ -48,13 +45,11 @@
         <activity
             android:name=".Search"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".Splash"
             android:exported="true"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -64,13 +59,11 @@
         <activity
             android:name=".ProfileSelectionActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".OnboardingSwipe"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".Password"
             android:exported="false"
@@ -82,13 +75,11 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".DetailsActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".GetStarted"
             android:exported="true"
@@ -96,8 +87,7 @@
         <activity
             android:name=".PlayerActivity"
             android:exported="false"
-            android:screenOrientation="landscape"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:screenOrientation="landscape" />
         <activity
             android:name="com.canhub.cropper.CropImageActivity"
             android:screenOrientation="portrait"
@@ -105,8 +95,7 @@
         <activity
             android:name=".ProfileTransitionActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".DownloadsActivity"
             android:exported="false" />
