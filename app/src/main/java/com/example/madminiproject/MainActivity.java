@@ -71,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+
         LinearLayout navbarBottom = findViewById(R.id.bottomNav);
         ImageView profileIcon = navbarBottom.findViewById(R.id.navbar_profile_icon);
         View navbar = findViewById(R.id.TopNavbar);
@@ -79,6 +80,10 @@ public class MainActivity extends AppCompatActivity {
                 "Stitches",
                 "1982"
         );
+        ImageView downloadsIcon = navbar.findViewById(R.id.downloads);
+        downloadsIcon.setOnClickListener(v -> {
+            startActivity(new Intent(this, DownloadsActivity.class));
+        });
         // get intent extras
         profileId = getIntent().getStringExtra("PROFILE_ID");
 
@@ -161,12 +166,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, Search.class));
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         });
-
-        ImageView downloadsIcon = navbar.findViewById(R.id.downloads);
-        downloadsIcon.setOnClickListener(v -> {
-            startActivity(new Intent(this, DownloadsActivity.class));
-        });
-
         profileIcon.setOnClickListener(v -> {
             Intent goToAccount = new Intent(this, ProfilePageActivity.class);
             goToAccount.putExtra("PROFILE_AVATAR_URL1", avatarUrl);

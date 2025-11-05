@@ -13,7 +13,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class CardStackAdapter extends RecyclerView.Adapter<CardStackAdapter.ViewHolder> {
 
@@ -59,37 +61,26 @@ public class CardStackAdapter extends RecyclerView.Adapter<CardStackAdapter.View
     /**
      * Adds new movies to the existing list incrementally.
      * Uses notifyItemRangeInserted for efficient updates without full refresh.
-     * Filters out duplicates before adding.
+     * Filters out duplicates before adding using HashSet for O(n) performance.
      */
     public void addMovies(List<Movie> newMovies) {
         if (newMovies == null || newMovies.isEmpty()) {
             return;
         }
         
-        // Filter out duplicates - check both within newMovies and against existing movies
+        // Use HashSet for O(n) duplicate filtering instead of O(n²) nested loops
+        Set<String> existingTitles = new HashSet<>();
+        for (Movie movie : movies) {
+            existingTitles.add(movie.getTitle());
+        }
+        
+        Set<String> seenTitles = new HashSet<>();
         List<Movie> uniqueNewMovies = new ArrayList<>();
+        
         for (Movie newMovie : newMovies) {
-            // Check if it's a duplicate within newMovies
-            boolean isDuplicateInNew = false;
-            for (Movie existing : uniqueNewMovies) {
-                if (existing.getTitle().equals(newMovie.getTitle())) {
-                    isDuplicateInNew = true;
-                    break;
-                }
-            }
-            
-            // Check if it's a duplicate against existing movies
-            boolean isDuplicateInExisting = false;
-            if (!isDuplicateInNew) {
-                for (Movie existing : movies) {
-                    if (existing.getTitle().equals(newMovie.getTitle())) {
-                        isDuplicateInExisting = true;
-                        break;
-                    }
-                }
-            }
-            
-            if (!isDuplicateInNew && !isDuplicateInExisting) {
+            String title = newMovie.getTitle();
+            // Only add if not in existing movies and not already seen in newMovies
+            if (!existingTitles.contains(title) && seenTitles.add(title)) {
                 uniqueNewMovies.add(newMovie);
             }
         }
