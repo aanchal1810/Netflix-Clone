@@ -10,6 +10,9 @@ import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
@@ -43,6 +46,11 @@ public class GetStarted extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_get_started);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
         View topNavbar = findViewById(R.id.topNavbar);
         topNavbar.setElevation(10f);
         topNavbar.bringToFront();
@@ -52,7 +60,7 @@ public class GetStarted extends AppCompatActivity {
         TabLayout tabLayout = findViewById(R.id.tabLayout);
         TextView carouselText = findViewById(R.id.carouselText);
         TextView carouselSubText = findViewById(R.id.carouselSubText);
-        ConstraintLayout mainLayout = findViewById(R.id.mainLayout);
+        ConstraintLayout mainLayout = findViewById(R.id.main);
         Button btnGetStarted = findViewById(R.id.button);
 
         // 1) set adapter first
