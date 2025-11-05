@@ -11,6 +11,7 @@ import android.view.Window;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
 
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
@@ -33,6 +34,7 @@ public class ProfileTransitionActivity extends AppCompatActivity {
         window.setSharedElementExitTransition(makeArcMotionTransition());
 
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_profile_transition);
 
         ImageView avatar = findViewById(R.id.transition_avatar);
