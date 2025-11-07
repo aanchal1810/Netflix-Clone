@@ -1,10 +1,12 @@
 package com.example.madminiproject.viewmodel;
 
+import android.app.Application;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
 
 import com.example.madminiproject.Movie;
 import com.example.madminiproject.MovieResponse;
@@ -19,16 +21,22 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class OnboardingViewModel extends ViewModel {
+public class OnboardingViewModel extends AndroidViewModel {
 
     private static final String TAG = "OnboardingViewModel";
+    private String profileID;
 
     private final MutableLiveData<List<Movie>> movies = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<List<String>> movietitles = new MutableLiveData<>();
     private final MainRepository repository = new MainRepository();
     private boolean isFetchingRecommended = false;
 
-    public OnboardingViewModel() {
+    public OnboardingViewModel(@NonNull Application application) {
+        super(application);
+        // Read profile ID from SharedPreferences
+        profileID = application.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE)
+                .getString("PROFILE_ID", null);
+        Log.d(TAG, "Profile ID loaded from SharedPreferences: " + profileID);
         fetchInitialMovies();
     }
 
@@ -51,8 +59,20 @@ public class OnboardingViewModel extends ViewModel {
             return;
         }
         
+        // Reload profileID from SharedPreferences to ensure we have the latest value
+        profileID = getApplication().getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE)
+                .getString("PROFILE_ID", null);
+        
+        if (profileID == null) {
+            Log.w(TAG, "Profile ID is null. Cannot fetch recommended movies without profile ID.");
+            isFetchingRecommended = false;
+            return;
+        }
+        
+        Log.d(TAG, "Using Profile ID for recommendations: " + profileID);
         isFetchingRecommended = true;
-        MovieRequest movieRequest = new MovieRequest(moviename);
+        // Create MovieRequest with profileID to send to backend
+        MovieRequest movieRequest = new MovieRequest(moviename, profileID);
         Call<List<String>> call = repository.getRecommendedMovie(movieRequest);
         call.enqueue(new Callback<List<String>>() {
             @Override

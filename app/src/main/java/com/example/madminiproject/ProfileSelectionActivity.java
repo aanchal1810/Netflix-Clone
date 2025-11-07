@@ -101,7 +101,19 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
 
         viewModel.getProfileAddedForOnboarding().observe(this, shouldNavigate -> {
             if (shouldNavigate) {
+                // Get the newly created profile ID and save it to SharedPreferences
+                String profileId = viewModel.getNewlyCreatedProfileId().getValue();
+                if (profileId != null) {
+                    getSharedPreferences("AppPrefs", MODE_PRIVATE)
+                            .edit()
+                            .putString("PROFILE_ID", profileId)
+                            .apply();
+                }
+                
                 Intent intent = new Intent(ProfileSelectionActivity.this, OnboardingSwipe.class);
+                if (profileId != null) {
+                    intent.putExtra("PROFILE_ID", profileId);
+                }
                 startActivity(intent);
                 viewModel.onOnboardingNavigated(); // Reset the trigger
             }

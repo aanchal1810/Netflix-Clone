@@ -12,15 +12,12 @@ import retrofit2.http.POST;
 
 
 public interface ApiService {
-
     @GET("/initialmovies")
     Call<List<String>> getInitialMovies();
-
     @POST("/recommend")
     Call<List<String>> getRecommendedMovies(@Body MovieRequest movieRequest);
-
-    @GET("/getfinalrecommendation")
-    Call<List<String>> getFinalRec();
+    @POST("/getfinalrecommendation")
+    Call<List<String>> getFinalRec(@Body MovieRequest movieRequest);
     @GET("/getgenremovies")
     Call<Map<String,List<String>>> getGenreMovies();
     @POST("/becauseyouwatched")

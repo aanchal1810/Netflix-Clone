@@ -26,6 +26,7 @@ public class ProfileSelectionViewModel extends ViewModel {
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> profileLimitReached = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> profileAddedForOnboarding = new MutableLiveData<>(false);
+    private final MutableLiveData<String> newlyCreatedProfileId = new MutableLiveData<>();
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
@@ -49,6 +50,10 @@ public class ProfileSelectionViewModel extends ViewModel {
 
     public LiveData<Boolean> getProfileAddedForOnboarding() {
         return profileAddedForOnboarding;
+    }
+
+    public LiveData<String> getNewlyCreatedProfileId() {
+        return newlyCreatedProfileId;
     }
 
     public void onOnboardingNavigated() {
@@ -124,6 +129,8 @@ public class ProfileSelectionViewModel extends ViewModel {
         Profile newProfile = new Profile(profileName, avatarUrl, colorIndex);
         db.collection("users").document(userId).collection("profiles").add(newProfile)
                 .addOnSuccessListener(documentReference -> {
+                    String profileId = documentReference.getId();
+                    newlyCreatedProfileId.setValue(profileId);
                     fetchProfiles();
                     profileAddedForOnboarding.setValue(true);
                 })
