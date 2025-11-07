@@ -58,6 +58,8 @@ public class PlayerActivity extends AppCompatActivity {
         playerView = findViewById(R.id.player_view);
         backdropImage = findViewById(R.id.backdrop_image);
 
+        profileId=getIntent().getStringExtra("profileId");
+        playerViewModel.loadProfile(profileId);
         player = new ExoPlayer.Builder(this)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(DemoUtil.getDataSourceFactory(this)))
                 .build();
@@ -184,6 +186,7 @@ public class PlayerActivity extends AppCompatActivity {
         if (player != null) {
             playerViewModel.setPlaybackPosition(player.getCurrentPosition());
             if (movie != null) {
+                System.out.println("Pause");
                 playerViewModel.saveWatchHistory(movie.getTitle(), player.getCurrentPosition());
             }
             player.pause();
@@ -201,6 +204,7 @@ protected void onStop() {
         super.onDestroy();
         if (player != null) {
             if (movie != null) {
+                System.out.println("Destroy");
                 playerViewModel.saveWatchHistory(movie.getTitle(), player.getCurrentPosition());
             }
             player.release();
