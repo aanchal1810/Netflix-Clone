@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private final Map<String, List<Movie>> genreMovieListMap = new HashMap<>();
     private final Map<String, TextView> becauseYouWatchedTitleMap = new HashMap<>(); // Store title TextViews for "Because You Watched" sections
     private final List<String> addedWatchedSections = new ArrayList<>(); // Track added sections to avoid duplicates
+    private List<String> previousWatchedTitles = new ArrayList<>(); // Track previous watched titles to detect new additions
 
     // References to section views for show/hide functionality
     private TextView myListTitle;
@@ -224,12 +225,26 @@ public class MainActivity extends AppCompatActivity {
         mainViewModel.getWatchedMoviesFromFirebase().observe(this, watchedTitles -> {
             if (watchedTitles != null && !watchedTitles.isEmpty()) {
                 Log.d(TAG, "[MainActivity] Loaded " + watchedTitles.size() + " watched movies from Firebase");
-                // Create "Because You Watched" sections for each watched movie
+                
+                // Find new movies that weren't in the previous list
+                List<String> newMovies = new ArrayList<>();
                 for (String watchedMovieTitle : watchedTitles) {
-                    addCategorySection(watchedMovieTitle);
+                    if (!previousWatchedTitles.contains(watchedMovieTitle)) {
+                        newMovies.add(watchedMovieTitle);
+                        Log.d(TAG, "[MainActivity] New watched movie detected: " + watchedMovieTitle);
+                    }
                 }
+                
+                // Create "Because You Watched" sections for new movies only
+                for (String newMovieTitle : newMovies) {
+                    addCategorySection(newMovieTitle);
+                }
+                
+                // Update the previous list for next comparison
+                previousWatchedTitles = new ArrayList<>(watchedTitles);
             } else {
                 Log.d(TAG, "[MainActivity] No watched movies found in Firebase");
+                previousWatchedTitles.clear();
             }
         });
     }
