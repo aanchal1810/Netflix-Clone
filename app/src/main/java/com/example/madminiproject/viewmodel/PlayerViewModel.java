@@ -82,6 +82,9 @@ public class PlayerViewModel extends ViewModel {
     }
 
     public void saveWatchHistory(String title, long position) {
+
+        System.out.println(title);
+        System.out.println(profileRef);
         if (profileRef != null) {
             Map<String, Object> watchHistoryData = new HashMap<>();
             Map<String, Long> history = new HashMap<>();
