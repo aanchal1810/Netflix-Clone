@@ -49,7 +49,16 @@ public class MainActivity extends AppCompatActivity {
     private final Map<String, RecyclerView> genreRecyclerViewMap = new HashMap<>();
     private final Map<String, MoviesAdapter> genreAdapterMap = new HashMap<>();
     private final Map<String, List<Movie>> genreMovieListMap = new HashMap<>();
+    private final Map<String, TextView> becauseYouWatchedTitleMap = new HashMap<>(); // Store title TextViews for "Because You Watched" sections
     private final List<String> addedWatchedSections = new ArrayList<>(); // Track added sections to avoid duplicates
+
+    // References to section views for show/hide functionality
+    private TextView myListTitle;
+    private RecyclerView myListRecyclerView;
+    private TextView watchListTitle;
+    private RecyclerView watchListRecyclerView;
+    private TextView continueWatchingTitle;
+    private RecyclerView continueWatchingRecyclerView;
 
     private String profileId;
     @Override
@@ -227,137 +236,161 @@ public class MainActivity extends AppCompatActivity {
     
     private void addMyListSection() {
         // Create the title TextView
-        TextView title = new TextView(this);
-        title.setText("My List");
-        title.setTextSize(18);
-        title.setTypeface(title.getTypeface(), Typeface.BOLD);
-        title.setPadding(16, 24, 0, 8);
+        myListTitle = new TextView(this);
+        myListTitle.setText("My List");
+        myListTitle.setTextSize(18);
+        myListTitle.setTypeface(myListTitle.getTypeface(), Typeface.BOLD);
+        myListTitle.setPadding(16, 24, 0, 8);
+        myListTitle.setVisibility(View.GONE); // Initially hidden
 
         // Create the RecyclerView
-        RecyclerView recyclerView = new RecyclerView(this);
-        recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+        myListRecyclerView = new RecyclerView(this);
+        myListRecyclerView.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
-        recyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
-        recyclerView.setClipToPadding(false);
+        myListRecyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        myListRecyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        myListRecyclerView.setClipToPadding(false);
+        myListRecyclerView.setVisibility(View.GONE); // Initially hidden
 
         // Each RecyclerView needs its own list and adapter
         List<Movie> sectionMovieList = new ArrayList<>();
         MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList, profileId);
-        recyclerView.setAdapter(sectionAdapter);
+        myListRecyclerView.setAdapter(sectionAdapter);
 
         // Get ViewModel and observe data for My List
         if (mainViewModel == null) {
             mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         }
         mainViewModel.getMyListMovies().observe(this, movies -> {
-            if (movies != null) {
+            if (movies != null && !movies.isEmpty()) {
                 Log.d(TAG, "[MainActivity] My List received " + movies.size() + " movies from ViewModel");
                 sectionMovieList.clear();
                 sectionMovieList.addAll(movies);
                 sectionAdapter.notifyDataSetChanged();
+                // Show section when there are movies
+                myListTitle.setVisibility(View.VISIBLE);
+                myListRecyclerView.setVisibility(View.VISIBLE);
             } else {
-                Log.d(TAG, "[MainActivity] My List is null");
+                Log.d(TAG, "[MainActivity] My List is null or empty");
                 sectionMovieList.clear();
                 sectionAdapter.notifyDataSetChanged();
+                // Hide section when empty
+                myListTitle.setVisibility(View.GONE);
+                myListRecyclerView.setVisibility(View.GONE);
             }
         });
 
         // Add to main container
-        mainContainer.addView(title);
-        mainContainer.addView(recyclerView);
+        mainContainer.addView(myListTitle);
+        mainContainer.addView(myListRecyclerView);
     }
     
     private void addWatchListSection() {
         // Create the title TextView
-        TextView title = new TextView(this);
-        title.setText("Watch List");
-        title.setTextSize(18);
-        title.setTypeface(title.getTypeface(), Typeface.BOLD);
-        title.setPadding(16, 24, 0, 8);
+        watchListTitle = new TextView(this);
+        watchListTitle.setText("Watch List");
+        watchListTitle.setTextSize(18);
+        watchListTitle.setTypeface(watchListTitle.getTypeface(), Typeface.BOLD);
+        watchListTitle.setPadding(16, 24, 0, 8);
+        watchListTitle.setVisibility(View.GONE); // Initially hidden
 
         // Create the RecyclerView
-        RecyclerView recyclerView = new RecyclerView(this);
-        recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+        watchListRecyclerView = new RecyclerView(this);
+        watchListRecyclerView.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
-        recyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
-        recyclerView.setClipToPadding(false);
+        watchListRecyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        watchListRecyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        watchListRecyclerView.setClipToPadding(false);
+        watchListRecyclerView.setVisibility(View.GONE); // Initially hidden
 
         // Each RecyclerView needs its own list and adapter
         List<Movie> sectionMovieList = new ArrayList<>();
         MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList, profileId);
-        recyclerView.setAdapter(sectionAdapter);
+        watchListRecyclerView.setAdapter(sectionAdapter);
 
         // Get ViewModel and observe data for Watch List
         if (mainViewModel == null) {
             mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         }
         mainViewModel.getWatchListMovies().observe(this, movies -> {
-            if (movies != null) {
+            if (movies != null && !movies.isEmpty()) {
                 Log.d(TAG, "[MainActivity] Watch List received " + movies.size() + " movies from ViewModel");
                 sectionMovieList.clear();
                 sectionMovieList.addAll(movies);
                 sectionAdapter.notifyDataSetChanged();
+                // Show section when there are movies
+                watchListTitle.setVisibility(View.VISIBLE);
+                watchListRecyclerView.setVisibility(View.VISIBLE);
             } else {
-                Log.d(TAG, "[MainActivity] Watch List is null");
+                Log.d(TAG, "[MainActivity] Watch List is null or empty");
                 sectionMovieList.clear();
                 sectionAdapter.notifyDataSetChanged();
+                // Hide section when empty
+                watchListTitle.setVisibility(View.GONE);
+                watchListRecyclerView.setVisibility(View.GONE);
             }
         });
 
         // Add to main container
-        mainContainer.addView(title);
-        mainContainer.addView(recyclerView);
+        mainContainer.addView(watchListTitle);
+        mainContainer.addView(watchListRecyclerView);
     }
     
     private void addContinueWatchingSection() {
         // Create the title TextView
-        TextView title = new TextView(this);
-        title.setText("Continue Watching");
-        title.setTextSize(18);
-        title.setTypeface(title.getTypeface(), Typeface.BOLD);
-        title.setPadding(16, 24, 0, 8);
+        continueWatchingTitle = new TextView(this);
+        continueWatchingTitle.setText("Continue Watching");
+        continueWatchingTitle.setTextSize(18);
+        continueWatchingTitle.setTypeface(continueWatchingTitle.getTypeface(), Typeface.BOLD);
+        continueWatchingTitle.setPadding(16, 24, 0, 8);
+        continueWatchingTitle.setVisibility(View.GONE); // Initially hidden
 
         // Create the RecyclerView
-        RecyclerView recyclerView = new RecyclerView(this);
-        recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+        continueWatchingRecyclerView = new RecyclerView(this);
+        continueWatchingRecyclerView.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
-        recyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
-        recyclerView.setClipToPadding(false);
+        continueWatchingRecyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        continueWatchingRecyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        continueWatchingRecyclerView.setClipToPadding(false);
+        continueWatchingRecyclerView.setVisibility(View.GONE); // Initially hidden
 
         // Each RecyclerView needs its own list and adapter
         List<Movie> sectionMovieList = new ArrayList<>();
         MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList, profileId);
-        recyclerView.setAdapter(sectionAdapter);
+        continueWatchingRecyclerView.setAdapter(sectionAdapter);
 
         // Get ViewModel and observe data for Continue Watching
         if (mainViewModel == null) {
             mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         }
         mainViewModel.getContinueWatchingMovies().observe(this, movies -> {
-            if (movies != null) {
+            if (movies != null && !movies.isEmpty()) {
                 Log.d(TAG, "[MainActivity] Continue Watching received " + movies.size() + " movies from ViewModel");
                 sectionMovieList.clear();
                 sectionMovieList.addAll(movies);
                 sectionAdapter.notifyDataSetChanged();
+                // Show section when there are movies
+                continueWatchingTitle.setVisibility(View.VISIBLE);
+                continueWatchingRecyclerView.setVisibility(View.VISIBLE);
             } else {
-                Log.d(TAG, "[MainActivity] Continue Watching is null");
+                Log.d(TAG, "[MainActivity] Continue Watching is null or empty");
                 sectionMovieList.clear();
                 sectionAdapter.notifyDataSetChanged();
+                // Hide section when empty
+                continueWatchingTitle.setVisibility(View.GONE);
+                continueWatchingRecyclerView.setVisibility(View.GONE);
             }
         });
 
         // Add to main container
-        mainContainer.addView(title);
-        mainContainer.addView(recyclerView);
+        mainContainer.addView(continueWatchingTitle);
+        mainContainer.addView(continueWatchingRecyclerView);
     }
 
     private void initRecyclerAndData() {
@@ -456,6 +489,7 @@ public class MainActivity extends AppCompatActivity {
         title.setTextSize(18);
         title.setTypeface(title.getTypeface(), Typeface.BOLD);
         title.setPadding(16, 24, 0, 8);
+        title.setVisibility(View.GONE); // Initially hidden
 
         // Create the RecyclerView
         RecyclerView recyclerView = new RecyclerView(this);
@@ -466,6 +500,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
         recyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
         recyclerView.setClipToPadding(false);
+        recyclerView.setVisibility(View.GONE); // Initially hidden
 
         // Each RecyclerView needs its own list and adapter
         List<Movie> sectionMovieList = new ArrayList<>();
@@ -476,6 +511,7 @@ public class MainActivity extends AppCompatActivity {
         genreRecyclerViewMap.put(sectionKey, recyclerView);
         genreAdapterMap.put(sectionKey, sectionAdapter);
         genreMovieListMap.put(sectionKey, sectionMovieList);
+        becauseYouWatchedTitleMap.put(sectionKey, title);
 
         // Get ViewModel and observe data for this specific section
         if (mainViewModel == null) {
@@ -487,8 +523,16 @@ public class MainActivity extends AppCompatActivity {
                 sectionMovieList.clear();
                 sectionMovieList.addAll(movies);
                 sectionAdapter.notifyDataSetChanged();
+                // Show section when there are movies
+                title.setVisibility(View.VISIBLE);
+                recyclerView.setVisibility(View.VISIBLE);
             } else {
                 Log.d(TAG, "[MainActivity] RecyclerView section '" + titleText + "' received empty or null movies list");
+                sectionMovieList.clear();
+                sectionAdapter.notifyDataSetChanged();
+                // Hide section when empty
+                title.setVisibility(View.GONE);
+                recyclerView.setVisibility(View.GONE);
             }
         });
 
