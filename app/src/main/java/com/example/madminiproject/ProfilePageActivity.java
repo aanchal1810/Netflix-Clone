@@ -133,8 +133,6 @@ public class ProfilePageActivity extends AppCompatActivity {
         //to back to home page
         homeIcon.setOnClickListener(v -> {
             Intent goToHome = new Intent(this, MainActivity.class);
-            goToHome.putExtra("PROFILE_BG_RES_ID", bgResIdProfile);
-            goToHome.putExtra("PROFILE_AVATAR_URL", profileUrl);
             startActivity(goToHome);
         });
     }

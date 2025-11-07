@@ -26,8 +26,8 @@ public class MainRepository {
     public Call<List<String>> getInitialMovie(){
         return movieapiService.getInitialMovies();
     }
-    public Call<List<String>> getFinalRec(){
-        return movieapiService.getFinalRec();
+    public Call<List<String>> getFinalRec(MovieRequest movieRequest){
+        return movieapiService.getFinalRec(movieRequest);
     }
     public Call<List<String>> getRecommendedMovie(MovieRequest movieRequest){
         return movieapiService.getRecommendedMovies(movieRequest);

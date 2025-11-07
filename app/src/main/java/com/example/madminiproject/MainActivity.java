@@ -30,7 +30,6 @@ import com.bumptech.glide.request.target.Target;
 import com.example.madminiproject.viewmodel.MainViewModel;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,11 +45,11 @@ public class MainActivity extends AppCompatActivity {
     private MoviesAdapter adapter,adapterrec;
     private MainViewModel mainViewModel;
     private LinearLayout mainContainer;
-    private List<String> watchedMoviesTitles;
     private final List<Movie> movieList = new ArrayList<>(), recmovielist = new ArrayList<>(),watchedMovies = new ArrayList<>();
     private final Map<String, RecyclerView> genreRecyclerViewMap = new HashMap<>();
     private final Map<String, MoviesAdapter> genreAdapterMap = new HashMap<>();
     private final Map<String, List<Movie>> genreMovieListMap = new HashMap<>();
+    private final List<String> addedWatchedSections = new ArrayList<>(); // Track added sections to avoid duplicates
 
     private String profileId;
     @Override
@@ -83,17 +82,20 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout navbarBottom = findViewById(R.id.bottomNav);
         ImageView profileIcon = navbarBottom.findViewById(R.id.navbar_profile_icon);
         View navbar = findViewById(R.id.TopNavbar);
-        watchedMoviesTitles = Arrays.asList(
-                "Avatar",
-                "Stitches",
-                "1982"
-        );
         ImageView downloadsIcon = navbar.findViewById(R.id.downloads);
         downloadsIcon.setOnClickListener(v -> {
             startActivity(new Intent(this, DownloadsActivity.class));
         });
         // get intent extras
         profileId = getIntent().getStringExtra("PROFILE_ID");
+        
+        // Save profile ID to SharedPreferences for ViewModel to access
+        if (profileId != null) {
+            getSharedPreferences("AppPrefs", MODE_PRIVATE)
+                    .edit()
+                    .putString("PROFILE_ID", profileId)
+                    .apply();
+        }
 
 
         // get data from naitik
@@ -111,9 +113,17 @@ public class MainActivity extends AppCompatActivity {
         adapterrec = new MoviesAdapter(this, recmovielist,profileId);
         recyclerViewRec.setAdapter(adapterrec);
 
-        for (String watchedMoviesTitle : watchedMoviesTitles){
-            addCategorySection(watchedMoviesTitle);
-        }
+        // Initialize ViewModel first
+        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        
+        // Load watched movies from Firebase and create "Because You Watched" sections
+        loadWatchedMoviesFromFirebase();
+        
+        // Add sections for My List, Watch List, and Continue Watching
+        addMyListSection();
+        addWatchListSection();
+        addContinueWatchingSection();
+        
         addGenreSection();
 
         // get intent extras
@@ -198,9 +208,163 @@ public class MainActivity extends AppCompatActivity {
         return changeBounds;
     }
 
+    private void loadWatchedMoviesFromFirebase() {
+        if (mainViewModel == null) {
+            mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        }
+        mainViewModel.getWatchedMoviesFromFirebase().observe(this, watchedTitles -> {
+            if (watchedTitles != null && !watchedTitles.isEmpty()) {
+                Log.d(TAG, "[MainActivity] Loaded " + watchedTitles.size() + " watched movies from Firebase");
+                // Create "Because You Watched" sections for each watched movie
+                for (String watchedMovieTitle : watchedTitles) {
+                    addCategorySection(watchedMovieTitle);
+                }
+            } else {
+                Log.d(TAG, "[MainActivity] No watched movies found in Firebase");
+            }
+        });
+    }
+    
+    private void addMyListSection() {
+        // Create the title TextView
+        TextView title = new TextView(this);
+        title.setText("My List");
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), Typeface.BOLD);
+        title.setPadding(16, 24, 0, 8);
+
+        // Create the RecyclerView
+        RecyclerView recyclerView = new RecyclerView(this);
+        recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        recyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        recyclerView.setClipToPadding(false);
+
+        // Each RecyclerView needs its own list and adapter
+        List<Movie> sectionMovieList = new ArrayList<>();
+        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList, profileId);
+        recyclerView.setAdapter(sectionAdapter);
+
+        // Get ViewModel and observe data for My List
+        if (mainViewModel == null) {
+            mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        }
+        mainViewModel.getMyListMovies().observe(this, movies -> {
+            if (movies != null) {
+                Log.d(TAG, "[MainActivity] My List received " + movies.size() + " movies from ViewModel");
+                sectionMovieList.clear();
+                sectionMovieList.addAll(movies);
+                sectionAdapter.notifyDataSetChanged();
+            } else {
+                Log.d(TAG, "[MainActivity] My List is null");
+                sectionMovieList.clear();
+                sectionAdapter.notifyDataSetChanged();
+            }
+        });
+
+        // Add to main container
+        mainContainer.addView(title);
+        mainContainer.addView(recyclerView);
+    }
+    
+    private void addWatchListSection() {
+        // Create the title TextView
+        TextView title = new TextView(this);
+        title.setText("Watch List");
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), Typeface.BOLD);
+        title.setPadding(16, 24, 0, 8);
+
+        // Create the RecyclerView
+        RecyclerView recyclerView = new RecyclerView(this);
+        recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        recyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        recyclerView.setClipToPadding(false);
+
+        // Each RecyclerView needs its own list and adapter
+        List<Movie> sectionMovieList = new ArrayList<>();
+        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList, profileId);
+        recyclerView.setAdapter(sectionAdapter);
+
+        // Get ViewModel and observe data for Watch List
+        if (mainViewModel == null) {
+            mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        }
+        mainViewModel.getWatchListMovies().observe(this, movies -> {
+            if (movies != null) {
+                Log.d(TAG, "[MainActivity] Watch List received " + movies.size() + " movies from ViewModel");
+                sectionMovieList.clear();
+                sectionMovieList.addAll(movies);
+                sectionAdapter.notifyDataSetChanged();
+            } else {
+                Log.d(TAG, "[MainActivity] Watch List is null");
+                sectionMovieList.clear();
+                sectionAdapter.notifyDataSetChanged();
+            }
+        });
+
+        // Add to main container
+        mainContainer.addView(title);
+        mainContainer.addView(recyclerView);
+    }
+    
+    private void addContinueWatchingSection() {
+        // Create the title TextView
+        TextView title = new TextView(this);
+        title.setText("Continue Watching");
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), Typeface.BOLD);
+        title.setPadding(16, 24, 0, 8);
+
+        // Create the RecyclerView
+        RecyclerView recyclerView = new RecyclerView(this);
+        recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        recyclerView.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        recyclerView.setClipToPadding(false);
+
+        // Each RecyclerView needs its own list and adapter
+        List<Movie> sectionMovieList = new ArrayList<>();
+        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList, profileId);
+        recyclerView.setAdapter(sectionAdapter);
+
+        // Get ViewModel and observe data for Continue Watching
+        if (mainViewModel == null) {
+            mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        }
+        mainViewModel.getContinueWatchingMovies().observe(this, movies -> {
+            if (movies != null) {
+                Log.d(TAG, "[MainActivity] Continue Watching received " + movies.size() + " movies from ViewModel");
+                sectionMovieList.clear();
+                sectionMovieList.addAll(movies);
+                sectionAdapter.notifyDataSetChanged();
+            } else {
+                Log.d(TAG, "[MainActivity] Continue Watching is null");
+                sectionMovieList.clear();
+                sectionAdapter.notifyDataSetChanged();
+            }
+        });
+
+        // Add to main container
+        mainContainer.addView(title);
+        mainContainer.addView(recyclerView);
+    }
+
     private void initRecyclerAndData() {
         Log.d(TAG, "[MainActivity] Setting up RecyclerView 1 observer");
-        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        if (mainViewModel == null) {
+            mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        }
         mainViewModel.getMovieList().observe(this, movies -> {
             if (movies != null) {
                 Log.d(TAG, "[MainActivity] RecyclerView 1 received " + movies.size() + " movies from ViewModel");
@@ -277,6 +441,15 @@ public class MainActivity extends AppCompatActivity {
         });
     }
     private void addCategorySection(String titleText) {
+        // Check if this section already exists to avoid duplicates
+        if (addedWatchedSections.contains(titleText)) {
+            Log.d(TAG, "[MainActivity] Section for '" + titleText + "' already exists, skipping");
+            return;
+        }
+        addedWatchedSections.add(titleText);
+        
+        String sectionKey = "because_you_watched_" + titleText;
+        
         // Create the title TextView
         TextView title = new TextView(this);
         title.setText("Because You Watched " + titleText);
@@ -296,21 +469,26 @@ public class MainActivity extends AppCompatActivity {
 
         // Each RecyclerView needs its own list and adapter
         List<Movie> sectionMovieList = new ArrayList<>();
-        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList,profileId);
+        MoviesAdapter sectionAdapter = new MoviesAdapter(this, sectionMovieList, profileId);
         recyclerView.setAdapter(sectionAdapter);
+
+        // Store references for future updates
+        genreRecyclerViewMap.put(sectionKey, recyclerView);
+        genreAdapterMap.put(sectionKey, sectionAdapter);
+        genreMovieListMap.put(sectionKey, sectionMovieList);
 
         // Get ViewModel and observe data for this specific section
         if (mainViewModel == null) {
             mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         }
         mainViewModel.getWatchedRecMovieList(titleText).observe(this, movies -> {
-            if (movies != null) {
+            if (movies != null && !movies.isEmpty()) {
                 Log.d(TAG, "[MainActivity] RecyclerView section '" + titleText + "' received " + movies.size() + " movies from ViewModel");
                 sectionMovieList.clear();
                 sectionMovieList.addAll(movies);
                 sectionAdapter.notifyDataSetChanged();
             } else {
-                Log.w(TAG, "[MainActivity] RecyclerView section '" + titleText + "' received null movies list");
+                Log.d(TAG, "[MainActivity] RecyclerView section '" + titleText + "' received empty or null movies list");
             }
         });
 
@@ -320,7 +498,9 @@ public class MainActivity extends AppCompatActivity {
     }
     private void initMovieRecRecycler() {
         Log.d(TAG, "[MainActivity] Setting up RecyclerView 2 observer");
-        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        if (mainViewModel == null) {
+            mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        }
         mainViewModel.getRecMovieList().observe(this, movies -> {
             if (movies != null) {
                 Log.d(TAG, "[MainActivity] RecyclerView 2 received " + movies.size() + " movies from ViewModel");
@@ -332,5 +512,18 @@ public class MainActivity extends AppCompatActivity {
                 Log.w(TAG, "[MainActivity] RecyclerView 2 received null movies list");
             }
         });
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh My List, Watch List, and Continue Watching when returning from DetailsActivity
+        // The snapshot listener should handle this automatically, but this ensures immediate update
+        if (mainViewModel != null) {
+            mainViewModel.refreshMyList();
+            mainViewModel.refreshWatchList();
+            mainViewModel.refreshContinueWatching();
+            Log.d(TAG, "[MainActivity] Refreshed My List, Watch List, and Continue Watching on resume");
+        }
     }
 }

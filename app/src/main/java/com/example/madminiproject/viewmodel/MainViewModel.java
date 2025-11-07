@@ -11,8 +11,12 @@ import androidx.lifecycle.MutableLiveData;
 import com.example.madminiproject.BuildConfig;
 import com.example.madminiproject.Movie;
 import com.example.madminiproject.MovieResponse;
+import com.example.madminiproject.Profile;
 import com.example.madminiproject.TmdbApi;
 import com.example.madminiproject.TmdbClient;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -38,7 +42,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainViewModel extends AndroidViewModel {
 
     private static final String TAG = "MainViewModel";
-
+    private String profileID;
     private static final String BASE_URL = "https://api.themoviedb.org/3/";
     private static final Pattern CSV_SPLIT = Pattern.compile(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
     private final MainRepository repository = new MainRepository();
@@ -49,16 +53,411 @@ public class MainViewModel extends AndroidViewModel {
     private final Map<String, MutableLiveData<List<Movie>>> watchedMovieRecListMap = new HashMap<>();
     private final MutableLiveData<List<String>> watchedMovieTitles = new MutableLiveData<>();
     private final MutableLiveData<Map<String,List<Movie>>> genreMovies = new MutableLiveData<>();
-
+    private final MutableLiveData<List<String>> watchedMoviesFromFirebase = new MutableLiveData<>();
+    private final MutableLiveData<List<Movie>> myListMovies = new MutableLiveData<>();
+    private final MutableLiveData<List<Movie>> watchListMovies = new MutableLiveData<>();
+    private final MutableLiveData<List<Movie>> continueWatchingMovies = new MutableLiveData<>();
 
     private final TmdbApi tmdbApi;
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private DocumentReference profileRef;
 
     public MainViewModel(@NonNull Application application) {
         super(application);
+        // Read profile ID from SharedPreferences
+        profileID = application.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE)
+                .getString("PROFILE_ID", null);
         tmdbApi = TmdbClient.getInstance();
-
-
+        Log.d(TAG, "Profile ID loaded from SharedPreferences: " + profileID);
         loadMovies();
+        loadProfileFromFirebase();
+    }
+    
+    private void loadProfileFromFirebase() {
+        if (profileID == null) {
+            Log.w(TAG, "Profile ID is null, cannot load profile from Firebase");
+            return;
+        }
+        
+        String userId = FirebaseAuth.getInstance().getCurrentUser() != null 
+            ? FirebaseAuth.getInstance().getCurrentUser().getUid() 
+            : null;
+        
+        if (userId == null) {
+            Log.w(TAG, "User not authenticated, cannot load profile from Firebase");
+            return;
+        }
+        
+        profileRef = db.collection("users").document(userId).collection("profiles").document(profileID);
+        profileRef.addSnapshotListener((snapshot, e) -> {
+            if (e != null) {
+                Log.e(TAG, "Error loading profile from Firebase", e);
+                return;
+            }
+            if (snapshot != null && snapshot.exists()) {
+                Profile profile = snapshot.toObject(Profile.class);
+                if (profile != null) {
+                    // Get watched movies from watchHistory
+                    List<String> watchedTitles = profile.getWatchHistoryAsList();
+                    watchedMoviesFromFirebase.postValue(watchedTitles);
+                    Log.d(TAG, "Loaded " + watchedTitles.size() + " watched movies from Firebase");
+                    
+                    // Load favorites (My List)
+                    loadMyListMovies(profile.getFavoritesAsList());
+                    
+                    // Load watchList
+                    loadWatchListMovies(profile.getWatchListAsList());
+                    
+                    // Load Continue Watching from watchHistory
+                    loadContinueWatchingMovies(profile.getWatchHistoryAsList());
+                }
+            } else {
+                Log.w(TAG, "Profile snapshot does not exist");
+            }
+        });
+    }
+    
+    public LiveData<List<String>> getWatchedMoviesFromFirebase() {
+        return watchedMoviesFromFirebase;
+    }
+    
+    private void loadMyListMovies(List<String> favoriteTitles) {
+        if (favoriteTitles == null || favoriteTitles.isEmpty()) {
+            myListMovies.postValue(new ArrayList<>());
+            return;
+        }
+        
+        List<Call<MovieResponse>> movieTitleCalls = repository.getMoviePosters(favoriteTitles);
+        fetchMyListMoviePosters(movieTitleCalls);
+    }
+    
+    private void fetchMyListMoviePosters(List<Call<MovieResponse>> movieTitleCalls) {
+        if (movieTitleCalls == null || movieTitleCalls.isEmpty()) {
+            myListMovies.postValue(new ArrayList<>());
+            return;
+        }
+        
+        final int totalCalls = movieTitleCalls.size();
+        final List<Movie> myListMovieList = Collections.synchronizedList(new ArrayList<>());
+        final int[] completedCount = {0};
+        
+        for (Call<MovieResponse> moviePosterCall : movieTitleCalls) {
+            moviePosterCall.enqueue(new Callback<MovieResponse>() {
+                @Override
+                public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        try {
+                            MovieResponse body = response.body();
+                            if (body.getResults() != null && !body.getResults().isEmpty()) {
+                                String moviename = body.getResults().get(0).getTitle();
+                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
+                                myListMovieList.add(new Movie(moviename, movieposterpath));
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "[My List] Error parsing TMDB response", e);
+                        }
+                    }
+                    
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            List<Movie> uniqueMovies = new ArrayList<>();
+                            for (Movie movie : myListMovieList) {
+                                boolean isDuplicate = false;
+                                for (Movie existing : uniqueMovies) {
+                                    if (existing.getTitle().equals(movie.getTitle())) {
+                                        isDuplicate = true;
+                                        break;
+                                    }
+                                }
+                                if (!isDuplicate) {
+                                    uniqueMovies.add(movie);
+                                }
+                            }
+                            myListMovies.postValue(uniqueMovies);
+                            Log.d(TAG, "[My List] Added " + uniqueMovies.size() + " movies");
+                        }
+                    }
+                }
+                
+                @Override
+                public void onFailure(Call<MovieResponse> call, Throwable t) {
+                    Log.e(TAG, "[My List] TMDB API Call failed: " + t.getMessage(), t);
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            if (!myListMovieList.isEmpty()) {
+                                List<Movie> uniqueMovies = new ArrayList<>();
+                                for (Movie movie : myListMovieList) {
+                                    boolean isDuplicate = false;
+                                    for (Movie existing : uniqueMovies) {
+                                        if (existing.getTitle().equals(movie.getTitle())) {
+                                            isDuplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!isDuplicate) {
+                                        uniqueMovies.add(movie);
+                                    }
+                                }
+                                myListMovies.postValue(uniqueMovies);
+                            } else {
+                                myListMovies.postValue(new ArrayList<>());
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    private void loadWatchListMovies(List<String> watchListTitles) {
+        if (watchListTitles == null || watchListTitles.isEmpty()) {
+            watchListMovies.postValue(new ArrayList<>());
+            return;
+        }
+        
+        List<Call<MovieResponse>> movieTitleCalls = repository.getMoviePosters(watchListTitles);
+        fetchWatchListMoviePosters(movieTitleCalls);
+    }
+    
+    private void fetchWatchListMoviePosters(List<Call<MovieResponse>> movieTitleCalls) {
+        if (movieTitleCalls == null || movieTitleCalls.isEmpty()) {
+            watchListMovies.postValue(new ArrayList<>());
+            return;
+        }
+        
+        final int totalCalls = movieTitleCalls.size();
+        final List<Movie> watchListMovieList = Collections.synchronizedList(new ArrayList<>());
+        final int[] completedCount = {0};
+        
+        for (Call<MovieResponse> moviePosterCall : movieTitleCalls) {
+            moviePosterCall.enqueue(new Callback<MovieResponse>() {
+                @Override
+                public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        try {
+                            MovieResponse body = response.body();
+                            if (body.getResults() != null && !body.getResults().isEmpty()) {
+                                String moviename = body.getResults().get(0).getTitle();
+                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
+                                watchListMovieList.add(new Movie(moviename, movieposterpath));
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "[Watch List] Error parsing TMDB response", e);
+                        }
+                    }
+                    
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            List<Movie> uniqueMovies = new ArrayList<>();
+                            for (Movie movie : watchListMovieList) {
+                                boolean isDuplicate = false;
+                                for (Movie existing : uniqueMovies) {
+                                    if (existing.getTitle().equals(movie.getTitle())) {
+                                        isDuplicate = true;
+                                        break;
+                                    }
+                                }
+                                if (!isDuplicate) {
+                                    uniqueMovies.add(movie);
+                                }
+                            }
+                            watchListMovies.postValue(uniqueMovies);
+                            Log.d(TAG, "[Watch List] Added " + uniqueMovies.size() + " movies");
+                        }
+                    }
+                }
+                
+                @Override
+                public void onFailure(Call<MovieResponse> call, Throwable t) {
+                    Log.e(TAG, "[Watch List] TMDB API Call failed: " + t.getMessage(), t);
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            if (!watchListMovieList.isEmpty()) {
+                                List<Movie> uniqueMovies = new ArrayList<>();
+                                for (Movie movie : watchListMovieList) {
+                                    boolean isDuplicate = false;
+                                    for (Movie existing : uniqueMovies) {
+                                        if (existing.getTitle().equals(movie.getTitle())) {
+                                            isDuplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!isDuplicate) {
+                                        uniqueMovies.add(movie);
+                                    }
+                                }
+                                watchListMovies.postValue(uniqueMovies);
+                            } else {
+                                watchListMovies.postValue(new ArrayList<>());
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    public LiveData<List<Movie>> getMyListMovies() {
+        return myListMovies;
+    }
+    
+    public LiveData<List<Movie>> getWatchListMovies() {
+        return watchListMovies;
+    }
+    
+    private void loadContinueWatchingMovies(List<String> watchHistoryTitles) {
+        if (watchHistoryTitles == null || watchHistoryTitles.isEmpty()) {
+            continueWatchingMovies.postValue(new ArrayList<>());
+            return;
+        }
+        
+        List<Call<MovieResponse>> movieTitleCalls = repository.getMoviePosters(watchHistoryTitles);
+        fetchContinueWatchingMoviePosters(movieTitleCalls);
+    }
+    
+    private void fetchContinueWatchingMoviePosters(List<Call<MovieResponse>> movieTitleCalls) {
+        if (movieTitleCalls == null || movieTitleCalls.isEmpty()) {
+            continueWatchingMovies.postValue(new ArrayList<>());
+            return;
+        }
+        
+        final int totalCalls = movieTitleCalls.size();
+        final List<Movie> continueWatchingMovieList = Collections.synchronizedList(new ArrayList<>());
+        final int[] completedCount = {0};
+        
+        for (Call<MovieResponse> moviePosterCall : movieTitleCalls) {
+            moviePosterCall.enqueue(new Callback<MovieResponse>() {
+                @Override
+                public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        try {
+                            MovieResponse body = response.body();
+                            if (body.getResults() != null && !body.getResults().isEmpty()) {
+                                String moviename = body.getResults().get(0).getTitle();
+                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
+                                continueWatchingMovieList.add(new Movie(moviename, movieposterpath));
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "[Continue Watching] Error parsing TMDB response", e);
+                        }
+                    }
+                    
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            List<Movie> uniqueMovies = new ArrayList<>();
+                            for (Movie movie : continueWatchingMovieList) {
+                                boolean isDuplicate = false;
+                                for (Movie existing : uniqueMovies) {
+                                    if (existing.getTitle().equals(movie.getTitle())) {
+                                        isDuplicate = true;
+                                        break;
+                                    }
+                                }
+                                if (!isDuplicate) {
+                                    uniqueMovies.add(movie);
+                                }
+                            }
+                            continueWatchingMovies.postValue(uniqueMovies);
+                            Log.d(TAG, "[Continue Watching] Added " + uniqueMovies.size() + " movies");
+                        }
+                    }
+                }
+                
+                @Override
+                public void onFailure(Call<MovieResponse> call, Throwable t) {
+                    Log.e(TAG, "[Continue Watching] TMDB API Call failed: " + t.getMessage(), t);
+                    synchronized (completedCount) {
+                        completedCount[0]++;
+                        if (completedCount[0] == totalCalls) {
+                            if (!continueWatchingMovieList.isEmpty()) {
+                                List<Movie> uniqueMovies = new ArrayList<>();
+                                for (Movie movie : continueWatchingMovieList) {
+                                    boolean isDuplicate = false;
+                                    for (Movie existing : uniqueMovies) {
+                                        if (existing.getTitle().equals(movie.getTitle())) {
+                                            isDuplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!isDuplicate) {
+                                        uniqueMovies.add(movie);
+                                    }
+                                }
+                                continueWatchingMovies.postValue(uniqueMovies);
+                            } else {
+                                continueWatchingMovies.postValue(new ArrayList<>());
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    public LiveData<List<Movie>> getContinueWatchingMovies() {
+        return continueWatchingMovies;
+    }
+    
+    /**
+     * Manually refresh My List from the current profile in Firestore
+     */
+    public void refreshMyList() {
+        if (profileRef != null) {
+            profileRef.get().addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot != null && documentSnapshot.exists()) {
+                    Profile profile = documentSnapshot.toObject(Profile.class);
+                    if (profile != null) {
+                        loadMyListMovies(profile.getFavoritesAsList());
+                        Log.d(TAG, "[My List] Manually refreshed with " + profile.getFavoritesAsList().size() + " favorites");
+                    }
+                }
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "[My List] Failed to refresh", e);
+            });
+        }
+    }
+    
+    /**
+     * Manually refresh Watch List from the current profile in Firestore
+     */
+    public void refreshWatchList() {
+        if (profileRef != null) {
+            profileRef.get().addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot != null && documentSnapshot.exists()) {
+                    Profile profile = documentSnapshot.toObject(Profile.class);
+                    if (profile != null) {
+                        loadWatchListMovies(profile.getWatchListAsList());
+                        Log.d(TAG, "[Watch List] Manually refreshed with " + profile.getWatchListAsList().size() + " watchlist items");
+                    }
+                }
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "[Watch List] Failed to refresh", e);
+            });
+        }
+    }
+    
+    /**
+     * Manually refresh Continue Watching from the current profile in Firestore
+     */
+    public void refreshContinueWatching() {
+        if (profileRef != null) {
+            profileRef.get().addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot != null && documentSnapshot.exists()) {
+                    Profile profile = documentSnapshot.toObject(Profile.class);
+                    if (profile != null) {
+                        loadContinueWatchingMovies(profile.getWatchHistoryAsList());
+                        Log.d(TAG, "[Continue Watching] Manually refreshed with " + profile.getWatchHistoryAsList().size() + " watch history items");
+                    }
+                }
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "[Continue Watching] Failed to refresh", e);
+            });
+        }
     }
 
     public LiveData<List<Movie>> getMovieList() {
@@ -158,7 +557,9 @@ public class MainViewModel extends AndroidViewModel {
     }
     public void getRecMovies(){
         Log.d(TAG, "[RecyclerView 2] getRecMovies() called - Starting API call to fetch initial movie titles");
-        Call<List<String>> call = repository.getFinalRec();
+        // Create MovieRequest with profileID to send to backend
+        MovieRequest movieRequest = new MovieRequest("", profileID);
+        Call<List<String>> call = repository.getFinalRec(movieRequest);
         call.enqueue(new Callback<List<String>>() {
             @Override
             public void onResponse(Call<List<String>> call, Response<List<String>> response) {
@@ -319,7 +720,8 @@ public class MainViewModel extends AndroidViewModel {
     }
 
     private void getWatchRecMovies(String title) {
-        MovieRequest movieRequest = new MovieRequest(title);
+        // Create MovieRequest with profileID to send to backend
+        MovieRequest movieRequest = new MovieRequest(title, profileID);
         Call<List<String>> call = repository.becauseYouWatched(movieRequest);
         call.enqueue(new Callback<List<String>>() {
             @Override

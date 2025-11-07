@@ -65,6 +65,16 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
         // Initialize ExecutorService for background processing
         executorService = Executors.newFixedThreadPool(4);
 
+        // Get PROFILE_ID from Intent and save to SharedPreferences if provided
+        String profileId = getIntent().getStringExtra("PROFILE_ID");
+        if (profileId != null) {
+            getSharedPreferences("AppPrefs", MODE_PRIVATE)
+                    .edit()
+                    .putString("PROFILE_ID", profileId)
+                    .apply();
+            Log.d("OnboardingSwipe", "Profile ID received from Intent and saved: " + profileId);
+        }
+
         viewModel = new ViewModelProvider(this).get(OnboardingViewModel.class);
         viewModel.getMovies().observe(this, movies -> {
             if (movies == null || movies.isEmpty()) {
