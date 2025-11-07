@@ -10,6 +10,7 @@
         android:id="@+id/edit_profile_avatar"
         android:layout_width="120dp"
         android:layout_height="120dp"
+        android:layout_marginTop="16dp"
         android:layout_marginBottom="16dp"
         android:clipToOutline="true"
         android:scaleType="centerCrop" />
@@ -26,14 +27,18 @@
         android:id="@+id/edit_profile_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
         android:layout_marginTop="20dp"
+        android:layout_marginRight="16dp"
         android:hint="Enter new name" />
 
     <Button
         android:id="@+id/save_profile_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
         android:layout_marginTop="24dp"
+        android:layout_marginRight="16dp"
         android:backgroundTint="@color/netflix_red"
         android:text="Save Changes"
         android:textColor="@android:color/white" />
@@ -42,7 +47,9 @@
         android:id="@+id/delete_profile_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
         android:layout_marginTop="24dp"
+        android:layout_marginRight="16dp"
         android:backgroundTint="@color/netflix_red"
         android:text="Delete Profile"
         android:textColor="@android:color/white" />
