@@ -161,7 +161,7 @@ public class EditProfileActivity extends AppCompatActivity {
                 Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
                  Intent intent = new Intent(EditProfileActivity.this, ProfilePageActivity.class);
                  intent.putExtra("PROFILE_ID", profileId);
-
+                 intent.putExtra("PROFILE_AVATAR_URL1", originalImageUrl);
                  intent.putExtra("PROFILE_BG_RES_ID1", backgroundID);
                  startActivity(intent);
                  finish();
