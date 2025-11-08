@@ -196,6 +196,7 @@ public class MainActivity extends AppCompatActivity {
         });
         profileIcon.setOnClickListener(v -> {
             Intent goToAccount = new Intent(this, ProfilePageActivity.class);
+            goToAccount.putExtra("profileId",profileId);
             goToAccount.putExtra("PROFILE_AVATAR_URL1", avatarUrl);
             goToAccount.putExtra("PROFILE_BG_RES_ID1", bgResId);
             startActivity(goToAccount);

@@ -61,6 +61,7 @@ public class PlayerActivity extends AppCompatActivity {
 
         profileId=getIntent().getStringExtra("profileId");
         playerViewModel.loadProfile(profileId);
+
         player = new ExoPlayer.Builder(this)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(DemoUtil.getDataSourceFactory(this)))
                 .build();
@@ -79,7 +80,6 @@ public class PlayerActivity extends AppCompatActivity {
         preparePlayer(mediaUri, movie);
 
         initializeCustomControls();
-        playerViewModel.loadProfile(profileId);
     }
     private void preparePlayer(Uri uri, Movie movie) {
         // Title and description
