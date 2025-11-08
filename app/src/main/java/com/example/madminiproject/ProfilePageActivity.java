@@ -150,7 +150,7 @@ public class ProfilePageActivity extends AppCompatActivity {
         mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
 
         // Retrieve profileId from Home if passed
-        profileId = getIntent().getStringExtra("PROFILE_ID");
+        profileId = getIntent().getStringExtra("profileId");
 
         addContinueWatchingSection();
         addMyListSection();
