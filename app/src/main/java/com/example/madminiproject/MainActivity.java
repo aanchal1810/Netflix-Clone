@@ -196,6 +196,7 @@ public class MainActivity extends AppCompatActivity {
         });
         profileIcon.setOnClickListener(v -> {
             Intent goToAccount = new Intent(this, ProfilePageActivity.class);
+            goToAccount.putExtra("profileId",profileId);
             goToAccount.putExtra("PROFILE_AVATAR_URL1", avatarUrl);
             goToAccount.putExtra("PROFILE_BG_RES_ID1", bgResId);
             startActivity(goToAccount);
@@ -252,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
     private void addMyListSection() {
         // Create the title TextView
         myListTitle = new TextView(this);
-        myListTitle.setText("My List");
+        myListTitle.setText("Favourites");
         myListTitle.setTextSize(18);
         myListTitle.setTypeface(myListTitle.getTypeface(), Typeface.BOLD);
         myListTitle.setPadding(16, 24, 0, 8);

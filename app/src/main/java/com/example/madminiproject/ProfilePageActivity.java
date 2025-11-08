@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -22,6 +23,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -30,11 +32,13 @@ import com.canhub.cropper.CropImageContract;
 import com.canhub.cropper.CropImageContractOptions;
 import com.canhub.cropper.CropImageOptions;
 import com.canhub.cropper.CropImageView;
+import com.example.madminiproject.viewmodel.MainViewModel;
 import com.example.madminiproject.viewmodel.ProfileSelectionViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class ProfilePageActivity extends AppCompatActivity {
 
@@ -45,6 +49,9 @@ public class ProfilePageActivity extends AppCompatActivity {
     private ProfileSelectionViewModel viewModel;
     private ImageView dialogAvatarImage;
     private Uri selectedImageUri;
+    private LinearLayout profileSectionContainer;
+    private MainViewModel mainViewModel;
+    private String profileId;
 
     private final ActivityResultLauncher<CropImageContractOptions> cropImage = registerForActivityResult(
             new CropImageContract(),
@@ -133,8 +140,22 @@ public class ProfilePageActivity extends AppCompatActivity {
         //to back to home page
         homeIcon.setOnClickListener(v -> {
             Intent goToHome = new Intent(this, MainActivity.class);
+            goToHome.putExtra("PROFILE_AVATAR_URL", profileUrl);
+            goToHome.putExtra("PROFILE_BG_RES_ID", bgResIdProfile);
             startActivity(goToHome);
         });
+        profileSectionContainer = findViewById(R.id.profile_section_container);
+
+        // Initialize the same MainViewModel used in MainActivity
+        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+
+        // Retrieve profileId from Home if passed
+        profileId = getIntent().getStringExtra("profileId");
+
+        addContinueWatchingSection();
+        addMyListSection();
+        addWatchListSection();
+
     }
 
     private void showMenuBottomSheet() {
@@ -279,4 +300,127 @@ public class ProfilePageActivity extends AppCompatActivity {
         changeBounds.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
         return changeBounds;
     }
+    private void addMyListSection() {
+        TextView title = new TextView(this);
+        title.setText("Favourites");
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        title.setPadding(16, 24, 0, 8);
+        title.setTextColor(getResources().getColor(android.R.color.white));
+        title.setVisibility(View.GONE);
+
+        RecyclerView recycler = new RecyclerView(this);
+        recycler.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        recycler.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        recycler.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        recycler.setClipToPadding(false);
+        recycler.setVisibility(View.GONE);
+
+        List<Movie> sectionMovies = new ArrayList<>();
+        MoviesAdapter adapter = new MoviesAdapter(this, sectionMovies, profileId);
+        recycler.setAdapter(adapter);
+
+        mainViewModel.getMyListMovies().observe(this, movies -> {
+            sectionMovies.clear();
+            if (movies != null && !movies.isEmpty()) {
+                sectionMovies.addAll(movies);
+                adapter.notifyDataSetChanged();
+                title.setVisibility(View.VISIBLE);
+                recycler.setVisibility(View.VISIBLE);
+            } else {
+                adapter.notifyDataSetChanged();
+                title.setVisibility(View.GONE);
+                recycler.setVisibility(View.GONE);
+            }
+        });
+
+        profileSectionContainer.addView(title);
+        profileSectionContainer.addView(recycler);
+    }
+
+    private void addWatchListSection() {
+        TextView title = new TextView(this);
+        title.setText("Watch List");
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        title.setPadding(16, 24, 0, 8);
+        title.setTextColor(getResources().getColor(android.R.color.white));
+        title.setVisibility(View.GONE);
+
+        RecyclerView recycler = new RecyclerView(this);
+        recycler.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        recycler.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        recycler.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        recycler.setClipToPadding(false);
+        recycler.setVisibility(View.GONE);
+
+        List<Movie> sectionMovies = new ArrayList<>();
+        MoviesAdapter adapter = new MoviesAdapter(this, sectionMovies, profileId);
+        recycler.setAdapter(adapter);
+
+        mainViewModel.getWatchListMovies().observe(this, movies -> {
+            sectionMovies.clear();
+            if (movies != null && !movies.isEmpty()) {
+                sectionMovies.addAll(movies);
+                adapter.notifyDataSetChanged();
+                title.setVisibility(View.VISIBLE);
+                recycler.setVisibility(View.VISIBLE);
+            } else {
+                adapter.notifyDataSetChanged();
+                title.setVisibility(View.GONE);
+                recycler.setVisibility(View.GONE);
+            }
+        });
+
+        profileSectionContainer.addView(title);
+        profileSectionContainer.addView(recycler);
+    }
+
+    private void addContinueWatchingSection() {
+        TextView title = new TextView(this);
+        title.setText("Continue Watching");
+        title.setTextSize(18);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        title.setPadding(16, 24, 0, 8);
+        title.setTextColor(getResources().getColor(android.R.color.white));
+        title.setVisibility(View.GONE);
+
+        RecyclerView recycler = new RecyclerView(this);
+        recycler.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        recycler.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        recycler.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
+        recycler.setClipToPadding(false);
+        recycler.setVisibility(View.GONE);
+
+        List<Movie> sectionMovies = new ArrayList<>();
+        MoviesAdapter adapter = new MoviesAdapter(this, sectionMovies, profileId);
+        recycler.setAdapter(adapter);
+
+        mainViewModel.getContinueWatchingMovies().observe(this, movies -> {
+            sectionMovies.clear();
+            if (movies != null && !movies.isEmpty()) {
+                sectionMovies.addAll(movies);
+                adapter.notifyDataSetChanged();
+                title.setVisibility(View.VISIBLE);
+                recycler.setVisibility(View.VISIBLE);
+            } else {
+                adapter.notifyDataSetChanged();
+                title.setVisibility(View.GONE);
+                recycler.setVisibility(View.GONE);
+            }
+        });
+
+        profileSectionContainer.addView(title);
+        profileSectionContainer.addView(recycler);
+    }
+
 }
