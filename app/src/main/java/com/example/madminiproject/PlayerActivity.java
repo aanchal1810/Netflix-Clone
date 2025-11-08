@@ -23,6 +23,7 @@ import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DataSource;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.ui.AspectRatioFrameLayout;
 import androidx.media3.ui.PlayerView;
 import androidx.mediarouter.app.MediaRouteButton;
 
@@ -60,9 +61,11 @@ public class PlayerActivity extends AppCompatActivity {
 
         profileId=getIntent().getStringExtra("profileId");
         playerViewModel.loadProfile(profileId);
+
         player = new ExoPlayer.Builder(this)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(DemoUtil.getDataSourceFactory(this)))
                 .build();
+        playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_ZOOM);
         playerView.setPlayer(player);
 
         // 🔹 Get Movie object
@@ -118,6 +121,22 @@ public class PlayerActivity extends AppCompatActivity {
         ImageButton exoPause = findViewById(R.id.exo_pause);
         exoPause.setOnClickListener(v -> player.pause());
 
+
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                if (isPlaying) {
+                    // Video is playing, show PAUSE, hide PLAY
+                    exoPause.setVisibility(View.VISIBLE);
+                    exoPlay.setVisibility(View.GONE);
+                } else {
+                    // Video is paused, show PLAY, hide PAUSE
+                    exoPause.setVisibility(View.GONE);
+                    exoPlay.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+
         SeekBar volumeSlider = findViewById(R.id.volume_slider);
         ImageView volumeIcon = findViewById(R.id.volume_icon);
 
@@ -137,6 +156,7 @@ public class PlayerActivity extends AppCompatActivity {
                     }
                 }
             }
+
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) { }
