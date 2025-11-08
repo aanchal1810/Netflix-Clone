@@ -61,6 +61,8 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
         drawerLayout = findViewById(R.id.drawer_layout);
         cardStackView = findViewById(R.id.card_stack_view);
         manager = new CardStackLayoutManager(this, this);
+        String avatarUrl = getIntent().getStringExtra("PROFILE_AVATAR_URL");
+        int bgResId = getIntent().getIntExtra("PROFILE_BG_RES_ID", -1);
 
         // Initialize ExecutorService for background processing
         executorService = Executors.newFixedThreadPool(4);
@@ -153,8 +155,12 @@ public class OnboardingSwipe extends AppCompatActivity implements CardStackListe
 
         Button continueButton = findViewById(R.id.continue_button);
         continueButton.setOnClickListener(v -> {
-            startActivity(new Intent(OnboardingSwipe.this, ProfileSelectionActivity.class));
+            Intent goMain = new Intent(OnboardingSwipe.this, ProfileSelectionActivity.class);
+            goMain.putExtra("PROFILE_AVATAR_URL",avatarUrl);
+            goMain.putExtra("PROFILE_BG_RES_ID", bgResId);
+            startActivity(goMain);
             finish();
+
         });
     }
     @Override

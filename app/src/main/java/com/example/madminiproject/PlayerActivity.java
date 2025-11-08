@@ -60,7 +60,9 @@ public class PlayerActivity extends AppCompatActivity {
         backdropImage = findViewById(R.id.backdrop_image);
 
         profileId=getIntent().getStringExtra("profileId");
-        playerViewModel.loadProfile(profileId);
+        if (profileId != null && !profileId.isEmpty()) {
+            playerViewModel.loadProfile(profileId);
+        }
 
         player = new ExoPlayer.Builder(this)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(DemoUtil.getDataSourceFactory(this)))

@@ -7,7 +7,7 @@ import okhttp3.OkHttpClient;
 
 public class RetrofitClient {
     private static Retrofit retrofit = null;
-    private static final String BASE_URL = "http://10.0.2.2:8000/";
+    private static final String BASE_URL = "http://27482fcd21aa.ngrok-free.app/";
     private static ApiService apiService = null;
     private RetrofitClient(){};
 

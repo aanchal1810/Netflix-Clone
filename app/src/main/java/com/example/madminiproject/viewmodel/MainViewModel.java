@@ -617,13 +617,14 @@ public class MainViewModel extends AndroidViewModel {
                         try {
                             MovieResponse body = response.body();
                             if (body.getResults() != null && !body.getResults().isEmpty()) {
-                                String moviename = body.getResults().get(0).getTitle();
-                                String movieposterpath = body.getResults().get(0).getPosterPath();
+                                Movie completeMovie = body.getResults().get(0);
+                                String moviename = completeMovie.getTitle();
+                                String movieposterpath = completeMovie.getPosterPath();
 
                                 Log.d(TAG, "[RecyclerView 2] Successfully fetched movie #" + (currentIndex + 1) + ": " + moviename);
                                 Log.v(TAG, "[RecyclerView 2] Poster URL: " + movieposterpath);
 
-                                finalRecMovies.add(new Movie(moviename, movieposterpath));
+                                finalRecMovies.add(completeMovie);
                                 synchronized (successCount) {
                                     successCount[0]++;
                                 }
@@ -778,13 +779,14 @@ public class MainViewModel extends AndroidViewModel {
                         try {
                             MovieResponse body = response.body();
                             if (body.getResults() != null && !body.getResults().isEmpty()) {
-                                String moviename = body.getResults().get(0).getTitle();
-                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
+                                Movie completeMovie = body.getResults().get(0);
+                                String moviename = completeMovie.getTitle();
+                                String movieposterpath = completeMovie.getFullPosterUrl();
 
                                 Log.v(TAG, "[Category: " + categoryTitle + "] Recommended Movie Name: " + moviename);
                                 Log.v(TAG, "[Category: " + categoryTitle + "] Recommended Poster URL: " + movieposterpath);
 
-                                recommendedMovies.add(new Movie(moviename, movieposterpath));
+                                recommendedMovies.add(completeMovie);
                             }
                         } catch (Exception e) {
                             Log.e(TAG, "[Category: " + categoryTitle + "] Error parsing TMDB response", e);
@@ -901,9 +903,8 @@ public class MainViewModel extends AndroidViewModel {
                         try {
                             MovieResponse body = response.body();
                             if (body.getResults() != null && !body.getResults().isEmpty()) {
-                                String moviename = body.getResults().get(0).getTitle();
-                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
-                                genreMovieList.add(new Movie(moviename, movieposterpath));
+                                Movie completeMovie = body.getResults().get(0);
+                                genreMovieList.add(completeMovie);
                             }
                         } catch (Exception e) {
                             Log.e(TAG, "[Genre: " + genre + "] Error parsing TMDB response", e);

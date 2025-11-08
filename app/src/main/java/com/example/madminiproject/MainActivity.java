@@ -130,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
         loadWatchedMoviesFromFirebase();
         
         // Add sections for My List, Watch List, and Continue Watching
-        addMyListSection();
+//        addMyListSection();
         addWatchListSection();
         addContinueWatchingSection();
         

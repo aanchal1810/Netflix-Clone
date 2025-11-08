@@ -10,13 +10,13 @@
     tools:context=".GetStarted">
 
     <!-- Top navbar -->
-    <include
-        layout="@layout/navbar_top_login"
-        android:id="@+id/topNavbar"
-        app:layout_constraintTop_toTopOf="parent"
-        android:elevation="10dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+<!--    <includeSubdomains-->
+<!--        layout="@layout/navbar_top_login"-->
+<!--        android:id="@+id/topNavbar"-->
+<!--        app:layout_constraintTop_toTopOf="parent"-->
+<!--        android:elevation="10dp"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintEnd_toEndOf="parent" />-->
 
     <!-- Carousel container -->
     <LinearLayout
@@ -30,7 +30,7 @@
         app:layout_constraintBottom_toTopOf="@+id/button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/topNavbar"
+        app:layout_constraintTop_toTopOf="parent"
         tools:visibility="visible">
 
         <!-- ViewPager2 for carousel images -->

@@ -92,6 +92,11 @@ public class ProfileSelectionActivity extends AppCompatActivity implements Profi
             loadingSpinner.setVisibility(View.GONE);
         });
 
+        String avatarUrl = getIntent().getStringExtra("PROFILE_AVATAR_URL");
+        int bgResId = getIntent().getIntExtra("PROFILE_BG_RES_ID", -1);
+
+
+
         viewModel.getErrorMessage().observe(this, errorMessage -> {
             loadingSpinner.setVisibility(View.GONE);
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();

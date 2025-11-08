@@ -51,10 +51,10 @@ public class GetStarted extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-        View topNavbar = findViewById(R.id.topNavbar);
-        topNavbar.setElevation(10f);
-        topNavbar.bringToFront();
-        topNavbar.invalidate();
+////        View topNavbar = findViewById(R.id.topNavbar);
+//        topNavbar.setElevation(10f);
+//        topNavbar.bringToFront();
+//        topNavbar.invalidate();
 
         ViewPager2 viewPager = findViewById(R.id.viewPager);
         TabLayout tabLayout = findViewById(R.id.tabLayout);

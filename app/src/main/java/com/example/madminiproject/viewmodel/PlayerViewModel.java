@@ -43,7 +43,16 @@ public class PlayerViewModel extends ViewModel {
     }
 
     public void loadProfile(String profileId) {
-        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        if (profileId == null || profileId.isEmpty()) {
+            return;
+        }
+        
+        com.google.firebase.auth.FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            return;
+        }
+        
+        String userId = currentUser.getUid();
         profileRef = db.collection("users").document(userId).collection("profiles").document(profileId);
         profileRef.addSnapshotListener((snapshot, e) -> {
             if (e != null) {
