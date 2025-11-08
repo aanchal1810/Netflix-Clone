@@ -149,9 +149,8 @@ public class MainViewModel extends AndroidViewModel {
                         try {
                             MovieResponse body = response.body();
                             if (body.getResults() != null && !body.getResults().isEmpty()) {
-                                String moviename = body.getResults().get(0).getTitle();
-                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
-                                myListMovieList.add(new Movie(moviename, movieposterpath));
+                                Movie completeMovie = body.getResults().get(0);
+                                myListMovieList.add(completeMovie);
                             }
                         } catch (Exception e) {
                             Log.e(TAG, "[My List] Error parsing TMDB response", e);
@@ -239,9 +238,8 @@ public class MainViewModel extends AndroidViewModel {
                         try {
                             MovieResponse body = response.body();
                             if (body.getResults() != null && !body.getResults().isEmpty()) {
-                                String moviename = body.getResults().get(0).getTitle();
-                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
-                                watchListMovieList.add(new Movie(moviename, movieposterpath));
+                                Movie completeMovie = body.getResults().get(0);
+                                watchListMovieList.add(completeMovie);
                             }
                         } catch (Exception e) {
                             Log.e(TAG, "[Watch List] Error parsing TMDB response", e);
@@ -337,9 +335,8 @@ public class MainViewModel extends AndroidViewModel {
                         try {
                             MovieResponse body = response.body();
                             if (body.getResults() != null && !body.getResults().isEmpty()) {
-                                String moviename = body.getResults().get(0).getTitle();
-                                String movieposterpath = body.getResults().get(0).getFullPosterUrl();
-                                continueWatchingMovieList.add(new Movie(moviename, movieposterpath));
+                                Movie completeMovie = body.getResults().get(0);
+                                continueWatchingMovieList.add(completeMovie);
                             }
                         } catch (Exception e) {
                             Log.e(TAG, "[Continue Watching] Error parsing TMDB response", e);

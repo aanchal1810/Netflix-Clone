@@ -77,6 +77,7 @@ public class PlayerActivity extends AppCompatActivity {
         preparePlayer(mediaUri, movie);
 
         initializeCustomControls();
+        playerViewModel.loadProfile(profileId);
     }
     private void preparePlayer(Uri uri, Movie movie) {
         // Title and description
